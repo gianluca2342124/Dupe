@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { SearchResultPayload } from '../../types/search';
 import { money } from '../../lib/format';
 import { track } from './track';
+import { canMakeSavingsCard, makeSavingsCard } from './savingsCard';
 
 interface Props {
   result: SearchResultPayload;
@@ -31,6 +32,26 @@ export default function ShareBar({ result, shareUrl, domain }: Props) {
     }
   }
 
+  async function savingsCard() {
+    const blob = await makeSavingsCard(result, domain);
+    if (!blob) return;
+    const file = new File([blob], 'gemelu-ahorro.png', { type: 'image/png' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title, text: `${text} ${shareUrl}` });
+        track('share', result.id);
+        return;
+      } catch {
+        // fall back to download
+      }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'gemelu-ahorro.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+  }
+
   async function share() {
     if (navigator.share) {
       try {
@@ -55,6 +76,11 @@ export default function ShareBar({ result, shareUrl, domain }: Props) {
       <button type="button" onClick={copy} className="btn btn-ghost text-sm" data-testid="copy-link">
         {copied ? '¡Enlace copiado!' : 'Copiar enlace'}
       </button>
+      {canMakeSavingsCard(result) && (
+        <button type="button" onClick={savingsCard} className="btn btn-ghost text-sm" data-testid="savings-card">
+          Tarjeta de ahorro
+        </button>
+      )}
       <a href="#otro-producto" className="btn btn-ghost text-sm">
         Probar con otro producto
       </a>

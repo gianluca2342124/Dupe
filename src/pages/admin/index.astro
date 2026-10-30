@@ -67,6 +67,10 @@ const tiles = metrics
       ['Clics con afiliación', String(metrics.affiliateClicks)],
       ['CTR (clics / resultados vistos)', pct(metrics.ctr)],
       ['Llamadas al proveedor', String(metrics.providerCalls)],
+      ['Llamadas por búsqueda nueva', (() => {
+        const uncached = Math.max(0, metrics.searches - Math.round(metrics.cacheHitRate * metrics.searches));
+        return uncached ? (metrics.providerCalls / uncached).toFixed(1) : '—';
+      })()],
     ]
   : [];
 ---
