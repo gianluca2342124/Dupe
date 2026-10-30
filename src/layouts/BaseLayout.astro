@@ -35,7 +35,9 @@ const {
 
 const site = (Astro.site?.href ?? BRAND.siteUrl).replace(/\/$/, '');
 const fullTitle = title ? `${title} · ${BRAND.name}` : `${BRAND.name} — ${BRAND.tagline}`;
-const canonicalUrl = canonical ? (canonical.startsWith('http') ? canonical : `${site}${canonical}`) : `${site}${Astro.url.pathname === '/' ? '/' : Astro.url.pathname}`;
+// Prerendered pages are built as files (`/como-funciona.html`); canonical URLs never carry `.html`.
+const cleanPath = Astro.url.pathname.replace(/(?:\/index)?\.html$/, '').replace(/\/$/, '') || '/';
+const canonicalUrl = canonical ? (canonical.startsWith('http') ? canonical : `${site}${canonical}`) : `${site}${cleanPath}`;
 const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${site}${ogImage}`;
 const webAnalyticsToken = import.meta.env.PUBLIC_CF_WEB_ANALYTICS_TOKEN;
 const ldList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
@@ -89,13 +91,15 @@ const ldList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       (function () {
         try {
           if (navigator.doNotTrack === '1' || navigator.webdriver) return;
-          var p = new URLSearchParams(location.search);
-          var ref = '';
+          const p = new URLSearchParams(location.search);
+          let ref = '';
           try {
             ref = document.referrer ? new URL(document.referrer).hostname : '';
-          } catch (e) {}
+          } catch {
+            ref = '';
+          }
           if (ref === location.hostname) ref = '';
-          var body = JSON.stringify({
+          const body = JSON.stringify({
             type: 'pageview',
             path: location.pathname.slice(0, 200),
             ref: ref,
@@ -104,7 +108,9 @@ const ldList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
             utm_campaign: p.get('utm_campaign'),
           });
           if (navigator.sendBeacon) navigator.sendBeacon('/api/event', new Blob([body], { type: 'application/json' }));
-        } catch (e) {}
+        } catch {
+          /* analytics must never break the page */
+        }
       })();
     </script>
     {

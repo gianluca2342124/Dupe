@@ -54,7 +54,7 @@ export async function* csvRecords(lines: AsyncIterable<string>, delimiter = ',')
     if (!line.trim()) continue;
     const cells = parseCsvLine(line, delimiter);
     if (!header) {
-      header = cells.map((h) => h.trim().replace(/^﻿/, '').toLowerCase());
+      header = cells.map((h) => h.trim().replace(/^\uFEFF/, '').toLowerCase());
       continue;
     }
     const row: FeedRow = {};

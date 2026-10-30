@@ -58,11 +58,15 @@ export interface AliExpressProviderOptions {
   now?: () => Date;
 }
 
-function asList<T>(v: unknown): T[] {
+/**
+ * Lists come either as plain arrays (simplified responses) or wrapped in a
+ * single-key object (`{ product: [...] }`, `{ promotion_link: [...] }`,
+ * `{ string: [...] }`) in the classic format. Accept both.
+ */
+export function asList<T>(v: unknown): T[] {
   if (Array.isArray(v)) return v as T[];
   if (v && typeof v === 'object') {
-    const inner = (v as Record<string, unknown>).product ?? (v as Record<string, unknown>).string;
-    if (Array.isArray(inner)) return inner as T[];
+    for (const inner of Object.values(v as Record<string, unknown>)) if (Array.isArray(inner)) return inner as T[];
   }
   return [];
 }

@@ -185,7 +185,7 @@ export const SHAPES: ConceptDef[] = [
 ];
 
 export const STYLES: ConceptDef[] = [
-  { id: 'scandinavian', en: 'scandinavian', es: 'nórdico', terms: ['nordico', 'nordica', 'escandinavo', 'escandinava', 'scandinavian', 'scandi', 'nordic style'], related: { minimalist: 0.6, japandi: 0.6 } },
+  { id: 'scandinavian', en: 'scandinavian', es: 'nórdico', terms: ['nordico', 'nordica', 'escandinavo', 'escandinava', 'scandinavian', 'scandi', 'nordic', 'nordic style'], related: { minimalist: 0.6, japandi: 0.6 } },
   { id: 'japandi', en: 'japandi', es: 'japandi', terms: ['japandi', 'japones', 'japonesa', 'japanese', 'wabi sabi', 'wabi-sabi', 'zen'], related: { scandinavian: 0.6, minimalist: 0.6 } },
   { id: 'boho', en: 'boho', es: 'boho', terms: ['boho', 'bohemio', 'bohemia', 'bohemian', 'etnico', 'etnica', 'ethnic', 'boho chic'], related: { mediterranean: 0.5, rustic: 0.4 } },
   { id: 'industrial', en: 'industrial', es: 'industrial', terms: ['industrial', 'loft'], related: { vintage: 0.4 } },

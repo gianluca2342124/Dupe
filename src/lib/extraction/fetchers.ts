@@ -34,7 +34,10 @@ export class FixturePageFetcher implements PageFetcher {
   constructor(private readonly pages: Record<string, { status?: number; html: string }>) {}
 
   async fetchPage(url: string): Promise<FetchedPage> {
-    const key = Object.keys(this.pages).find((k) => k === url || k.replace(/\/$/, '') === url.replace(/\/$/, ''));
+    const strip = (u: string) => u.replace(/\?.*$/, '').replace(/\/$/, '');
+    const key =
+      Object.keys(this.pages).find((k) => k === url || k.replace(/\/$/, '') === url.replace(/\/$/, '')) ??
+      Object.keys(this.pages).find((k) => strip(k) === strip(url));
     const page = key ? this.pages[key] : undefined;
     if (!page) return { status: 404, finalUrl: url, html: '<html><head><title>404</title></head></html>', truncated: false };
     return { status: page.status ?? 200, finalUrl: url, html: page.html, truncated: false };

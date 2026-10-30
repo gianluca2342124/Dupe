@@ -100,7 +100,6 @@ export default function UrlForm({
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
-          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus={autoFocus}
           enterKeyHint="search"
           placeholder={placeholder}

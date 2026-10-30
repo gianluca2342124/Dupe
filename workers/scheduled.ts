@@ -1,4 +1,5 @@
 import { AliExpressClient } from '../src/lib/providers/aliexpress/client';
+import { asList } from '../src/lib/providers/aliexpress/provider';
 import type { CommissionRecord, DataStore, SyncRunRecord } from '../src/lib/data/types';
 import type { AppConfig } from '../src/lib/server/config';
 import type { Logger } from '../src/lib/server/logger';
@@ -61,7 +62,7 @@ export async function importAliExpressOrders(deps: JobDeps, days: number) {
         });
         const result = (payload.resp_result as { result?: { orders?: unknown; total_page_no?: number } } | undefined)?.result;
         const ordersRaw = result?.orders;
-        const orders = (Array.isArray(ordersRaw) ? ordersRaw : ((ordersRaw as { order?: unknown[] })?.order ?? [])) as Record<string, unknown>[];
+        const orders = asList<Record<string, unknown>>(ordersRaw);
         run.rowsRead += orders.length;
         const rows: CommissionRecord[] = orders.map((o) => ({
           provider: 'aliexpress',

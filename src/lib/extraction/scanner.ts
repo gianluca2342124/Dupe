@@ -73,6 +73,7 @@ export function parseJsonLd(raw: string): unknown | undefined {
     try {
       // Common breakages: raw newlines/tabs inside strings, trailing commas.
       const repaired = text
+        // eslint-disable-next-line no-control-regex -- raw control chars are what breaks JSON.parse here
         .replace(/[\u0000-\u001F]+/g, ' ')
         .replace(/,\s*([}\]])/g, '$1');
       return JSON.parse(repaired);

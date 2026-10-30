@@ -44,6 +44,7 @@ const schema = z.object({
   SHOW_SIMILARITY_PERCENT: bool,
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional(),
   DAILY_SEARCH_BUDGET: int(3000),
+  RATE_LIMIT_MODE: z.enum(['edge', 'memory', 'off']).optional(),
   CF_WEB_ANALYTICS_TOKEN: str,
   HEADLESS_HOSTS: list,
   GO_ALLOWED_HOSTS: list,
@@ -86,6 +87,8 @@ export interface AppConfig {
   showSimilarityPercent: boolean;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   dailySearchBudget: number;
+  /** edge = Cloudflare binding (default when bound), memory = per-isolate, off = local testing only. */
+  rateLimitMode: 'edge' | 'memory' | 'off';
   webAnalyticsToken: string | null;
   headlessHosts: string[];
   goAllowedHosts: string[];
@@ -128,6 +131,7 @@ export function buildConfig(env: RawEnv): AppConfig {
   if (!e.LINK_SIGNING_SECRET) warnings.push('LINK_SIGNING_SECRET missing: /go/ links use an ephemeral secret and break across isolates');
   if (!e.SUPABASE_URL) warnings.push('Supabase not configured: analytics and history are kept in memory only');
   if (provider === 'demo') warnings.push('Running in DEMO mode: alternatives are fictional');
+  if (e.RATE_LIMIT_MODE === 'off') warnings.push('RATE_LIMIT_MODE=off: rate limiting is disabled (only for local tests)');
 
   if (!e.LINK_SIGNING_SECRET && !ephemeralSecret) {
     const buf = new Uint8Array(32);
@@ -152,6 +156,7 @@ export function buildConfig(env: RawEnv): AppConfig {
     showSimilarityPercent: e.SHOW_SIMILARITY_PERCENT,
     logLevel: e.LOG_LEVEL ?? 'info',
     dailySearchBudget: e.DAILY_SEARCH_BUDGET,
+    rateLimitMode: e.RATE_LIMIT_MODE ?? 'edge',
     webAnalyticsToken: e.CF_WEB_ANALYTICS_TOKEN,
     headlessHosts: e.HEADLESS_HOSTS,
     goAllowedHosts: e.GO_ALLOWED_HOSTS,

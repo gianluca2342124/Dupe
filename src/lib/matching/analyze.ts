@@ -132,6 +132,23 @@ export function detectPackSize(rawTitle: string | null | undefined): number | nu
   return null;
 }
 
+/**
+ * Descriptions often talk about other things ("IKEA recomienda la bombilla
+ * LED … con forma de globo", "cable no incluido"). Sentences about
+ * accessories/bulbs would leak their shape or material into the product.
+ */
+const ACCESSORY_SENTENCE = /bombill|\bbulb|se vende[n]?\s+(?:por\s+)?(?:separado|aparte)|no\s+incluid|not\s+included|sold\s+separately|recomienda|recommend/i;
+
+export function descriptionForAnalysis(description: string | null | undefined): string {
+  if (!description) return '';
+  return description
+    .slice(0, 800)
+    .split(/(?<=[.!?;])\s+/)
+    .filter((sentence) => !ACCESSORY_SENTENCE.test(sentence))
+    .join(' ')
+    .slice(0, 500);
+}
+
 export interface AnalysisInput {
   title: string | null;
   description?: string | null;
@@ -162,7 +179,7 @@ export function analyzeProduct(input: AnalysisInput): ProductAnalysis {
   const sources = new Set<AnalysisSource>();
   const title = input.title ?? '';
   const titleText = phraseText(title);
-  const descText = phraseText((input.description ?? '').slice(0, 500));
+  const descText = phraseText(descriptionForAnalysis(input.description));
   const crumbs = input.breadcrumbs ?? input.categoryPath ?? [];
   const lastCrumbText = phraseText(crumbs[crumbs.length - 1] ?? '');
   const crumbsText = phraseText(crumbs.join(' '));

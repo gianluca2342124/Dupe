@@ -22,6 +22,7 @@ export const GET: APIRoute = async ({ url }) => {
     store: store.kind,
     fetchMode: config.fetchMode,
     robotsPolicy: config.robotsPolicy,
+    rateLimit: config.rateLimitMode,
     cache: { inflight: cache.inflightCount },
     configured: {
       aliexpress: !!(config.aliexpress.appKey && config.aliexpress.appSecret),

@@ -15,7 +15,7 @@ import type { AffiliateProductProvider } from '../providers/types';
 import { SearchService, type VisionAnalyzer } from '../search/service';
 import { DohResolver } from '../security/dns';
 import type { HostPolicyConfig } from '../security/host-policy';
-import { CloudflareRateLimiter, MemoryRateLimiter, type CloudflareRateLimitBinding, type RateLimiter } from '../security/rate-limit';
+import { CloudflareRateLimiter, MemoryRateLimiter, NoopRateLimiter, type CloudflareRateLimitBinding, type RateLimiter } from '../security/rate-limit';
 import { RobotsChecker } from '../security/robots';
 import { createSafeFetcher } from '../security/safe-fetch';
 import { buildConfig, SECRET_ENV_NAMES, type AppConfig } from './config';
@@ -108,12 +108,13 @@ export function getServices(env: Record<string, unknown>): Services {
     kvSource,
   });
 
-  const searchLimiter = env.SEARCH_LIMITER
-    ? new CloudflareRateLimiter(env.SEARCH_LIMITER as CloudflareRateLimitBinding)
-    : new MemoryRateLimiter(12, 60_000);
-  const clickLimiter = env.CLICK_LIMITER
-    ? new CloudflareRateLimiter(env.CLICK_LIMITER as CloudflareRateLimitBinding)
-    : new MemoryRateLimiter(60, 60_000);
+  const limiter = (binding: unknown, perMinute: number): RateLimiter => {
+    if (config.rateLimitMode === 'off') return new NoopRateLimiter();
+    if (config.rateLimitMode === 'edge' && binding) return new CloudflareRateLimiter(binding as CloudflareRateLimitBinding);
+    return new MemoryRateLimiter(perMinute, 60_000);
+  };
+  const searchLimiter = limiter(env.SEARCH_LIMITER, 12);
+  const clickLimiter = limiter(env.CLICK_LIMITER, 60);
 
   for (const w of config.warnings) logger.debug('config warning', { warning: w });
 
