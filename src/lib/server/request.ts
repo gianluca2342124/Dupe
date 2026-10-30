@@ -22,12 +22,23 @@ export function country(request: Request): string | null {
   return cf?.country ?? request.headers.get('cf-ipcountry') ?? null;
 }
 
-export function referrerDomain(request: Request, ownHost: string): string | null {
+const bareHost = (host: string) => host.replace(/^www\./, '');
+
+/**
+ * Origin for shareable links: the configured site when the request is served
+ * on it, otherwise the host actually serving it (workers.dev, preview URLs,
+ * local), so links shared from a test deployment work before the domain does.
+ */
+export function publicOrigin(siteUrl: string, requestUrl: URL): string {
+  return bareHost(new URL(siteUrl).hostname) === bareHost(requestUrl.hostname) ? siteUrl.replace(/\/+$/, '') : requestUrl.origin;
+}
+
+export function referrerDomain(request: Request, ownHosts: string[]): string | null {
   const ref = request.headers.get('referer');
   if (!ref) return null;
   try {
-    const host = new URL(ref).hostname.replace(/^www\./, '');
-    return host === ownHost.replace(/^www\./, '') ? null : host.slice(0, 100);
+    const host = bareHost(new URL(ref).hostname);
+    return ownHosts.some((h) => bareHost(h) === host) ? null : host.slice(0, 100);
   } catch {
     return null;
   }

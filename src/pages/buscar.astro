@@ -5,7 +5,7 @@ import ResultsApp from '../components/results/ResultsApp';
 import { BRAND } from '../config/brand';
 import { money } from '../lib/format';
 import { getServices } from '../lib/server/services';
-import { entryModeFrom } from '../lib/server/request';
+import { entryModeFrom, publicOrigin } from '../lib/server/request';
 import { SearchError } from '../lib/search/service';
 import { extractUrlFromText, toPrefixUrl } from '../lib/url/normalize';
 import type { SearchErrorCode, SearchResultPayload } from '../types/search';
@@ -15,6 +15,7 @@ export const prerender = false;
 const { search, config, provider } = getServices(env as unknown as Record<string, unknown>);
 const params = Astro.url.searchParams;
 const via = entryModeFrom(params.get('via'));
+const site = publicOrigin(config.siteUrl, Astro.url);
 
 // Inputs: ?url= (form, prefix capture, share target), ?q= (description), ?text= (share sheets).
 const rawUrl = params.get('url') ?? (params.get('text') ? extractUrlFromText(params.get('text')!) : null) ?? '';
@@ -23,21 +24,21 @@ const q = params.get('q')?.trim() ?? '';
 let initialResult: SearchResultPayload | null = null;
 let initialError: { code: SearchErrorCode; message: string } | null = null;
 let storeName: string | null = null;
-let shareUrl = config.siteUrl;
+let shareUrl = site;
 let title = 'Buscar alternativas';
 
 if (rawUrl) {
   try {
     const n = search.normalize(rawUrl);
     storeName = n.store.name;
-    shareUrl = toPrefixUrl(config.siteUrl, n.canonical);
+    shareUrl = toPrefixUrl(site, n.canonical);
     initialResult = await search.cached(rawUrl);
   } catch (err) {
     if (err instanceof SearchError) initialError = { code: err.code, message: err.message };
     else throw err;
   }
 } else if (q) {
-  shareUrl = `${config.siteUrl}/buscar?q=${encodeURIComponent(q)}`;
+  shareUrl = `${site}/buscar?q=${encodeURIComponent(q)}`;
 }
 
 if (initialResult?.source.title) {
@@ -61,14 +62,14 @@ const query = rawUrl ? ({ kind: 'url', url: rawUrl } as const) : q ? ({ kind: 't
         initialError={initialError}
         initialStoreName={storeName}
         shareUrl={shareUrl}
-        domain={BRAND.domain}
+        domain={new URL(site).host}
         providerLabel={provider.capabilities.isDemo ? 'el catálogo de demostración' : provider.label}
         ads={{ enabled: config.ads.enabled, client: config.ads.clientId, slot: config.ads.slotResults }}
       />
     ) : (
       <div class="container-page max-w-2xl py-16 text-center">
         <h1 class="display text-4xl sm:text-5xl">Pega el enlace de un producto</h1>
-        <p class="mt-3 text-ink-2">O añade {BRAND.domain}/ delante de cualquier enlace en la barra del navegador.</p>
+        <p class="mt-3 text-ink-2">O añade {new URL(site).host}/ delante de cualquier enlace en la barra del navegador.</p>
         <div class="mt-8">
           <form action="/buscar" method="get" class="flex gap-2">
             <input name="url" type="url" required placeholder="https://…" class="h-12 min-w-0 flex-1 rounded-full border border-line-2 bg-card px-5 outline-none" />

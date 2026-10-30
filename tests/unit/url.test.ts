@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { capturePrefixedUrl } from '../../src/lib/url/capture';
 import { extractUrlFromText, normalizeProductUrl, normalizePercentEncoding, toPrefixUrl } from '../../src/lib/url/normalize';
 import type { HostPolicyConfig } from '../../src/lib/security/host-policy';
+import { publicOrigin, referrerDomain } from '../../src/lib/server/request';
 
 const policy: HostPolicyConfig = { mode: 'public', allowlist: [], denylist: [], ownHosts: ['gemelu.com', 'localhost'] };
 const capture = (path: string) => capturePrefixedUrl(`https://gemelu.com${path}`);
@@ -122,5 +123,22 @@ describe('URL normalisation', () => {
 
   it('builds the shareable prefix URL', () => {
     expect(toPrefixUrl('https://gemelu.com/', 'https://www.ikea.com/es/es/p/x/')).toBe('https://gemelu.com/https://www.ikea.com/es/es/p/x/');
+  });
+});
+
+describe('share links and referrers', () => {
+  it('uses the configured site when serving it, the serving host otherwise', () => {
+    expect(publicOrigin('https://gemelu.com/', new URL('https://gemelu.com/buscar?url=x'))).toBe('https://gemelu.com');
+    expect(publicOrigin('https://gemelu.com', new URL('https://www.gemelu.com/ejemplo/a'))).toBe('https://gemelu.com');
+    expect(publicOrigin('https://gemelu.com', new URL('https://gemelu.ana.workers.dev/buscar'))).toBe('https://gemelu.ana.workers.dev');
+    expect(publicOrigin('https://gemelu.com', new URL('http://localhost:4321/buscar'))).toBe('http://localhost:4321');
+  });
+
+  it('treats every own host as internal traffic', () => {
+    const req = (ref: string) => new Request('https://gemelu.ana.workers.dev/api/search', { headers: { referer: ref } });
+    const own = ['gemelu.com', 'gemelu.ana.workers.dev'];
+    expect(referrerDomain(req('https://gemelu.ana.workers.dev/buscar'), own)).toBeNull();
+    expect(referrerDomain(req('https://www.gemelu.com/'), own)).toBeNull();
+    expect(referrerDomain(req('https://www.tiktok.com/@x'), own)).toBe('tiktok.com');
   });
 });

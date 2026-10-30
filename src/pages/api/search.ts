@@ -54,7 +54,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     waitUntil: (p: Promise<unknown>) => locals.cfContext?.waitUntil(p),
     deviceClass: deviceClass(request.headers.get('user-agent')),
     country: country(request),
-    referrerDomain: referrerDomain(request, new URL(config.siteUrl).hostname),
+    referrerDomain: referrerDomain(request, [new URL(config.siteUrl).hostname, new URL(request.url).hostname]),
     utm: utmFrom(new URL(request.url).searchParams),
   };
 

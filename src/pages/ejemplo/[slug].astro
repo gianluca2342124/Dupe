@@ -4,6 +4,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import ResultsApp from '../../components/results/ResultsApp';
 import { BRAND } from '../../config/brand';
 import { getServices } from '../../lib/server/services';
+import { publicOrigin } from '../../lib/server/request';
 import { exampleSource } from '../../lib/search/examples';
 
 export const prerender = false;
@@ -13,6 +14,7 @@ const source = exampleSource(slug);
 if (!source) return new Response(null, { status: 404 });
 
 const { search, config } = getServices(env as unknown as Record<string, unknown>);
+const site = publicOrigin(config.siteUrl, Astro.url);
 const result = await search.searchExample(source, { entryMode: 'example', waitUntil: (p) => Astro.locals.cfContext?.waitUntil(p) }, () => {});
 ---
 
@@ -24,8 +26,8 @@ const result = await search.searchExample(source, { entryMode: 'example', waitUn
     initialResult={result}
     initialError={null}
     initialStoreName="Tienda de ejemplo"
-    shareUrl={`${config.siteUrl}/ejemplo/${slug}`}
-    domain={BRAND.domain}
+    shareUrl={`${site}/ejemplo/${slug}`}
+    domain={new URL(site).host}
     providerLabel="el catálogo de demostración"
     ads={{ enabled: false, client: null, slot: null }}
   />
