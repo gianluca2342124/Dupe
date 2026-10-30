@@ -1,0 +1,30 @@
+{
+  "extends": "astro/tsconfigs/strictest",
+  "include": [
+    ".astro/types.d.ts",
+    "**/*",
+    "worker-configuration.d.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    ".wrangler",
+    "playwright-report",
+    "test-results"
+  ],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false
+  }
+}

@@ -1,0 +1,32 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  updated: string;
+  /** Show the "pending legal review" banner. */
+  draft?: boolean;
+  eyebrow?: string;
+}
+const { title, description, updated, draft = true, eyebrow = 'Legal' } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <article class="container-page max-w-3xl py-10 sm:py-16">
+    <p class="eyebrow">{eyebrow}</p>
+    <h1 class="display mt-3 text-4xl sm:text-6xl">{title}</h1>
+    <p class="mt-3 text-sm text-ink-3">Última actualización: {updated}</p>
+    {
+      draft && (
+        <div class="mt-6 rounded-2xl bg-demo-soft px-4 py-3 text-sm leading-relaxed text-demo" role="note">
+          Borrador preparado como punto de partida. No es asesoramiento jurídico: debe revisarlo un profesional y completarse los campos
+          marcados como <span class="pending">PENDIENTE</span> antes del lanzamiento.
+        </div>
+      )
+    }
+    <div class="prose-legal mt-8">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>

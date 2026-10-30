@@ -1,0 +1,28 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { BRAND } from '../config/brand';
+export const prerender = true;
+---
+
+<LegalLayout title="GemeluBot" description={`Información para tiendas sobre el lector de ${BRAND.name}.`} updated="30 de octubre de 2026" draft={false} eyebrow="Para tiendas">
+  <p>
+    GemeluBot es el lector de {BRAND.name}. Solo visita una ficha de producto cuando una persona nos pide alternativas a ese producto concreto: no
+    rastreamos catálogos ni seguimos enlaces.
+  </p>
+  <h2>Cómo se identifica</h2>
+  <p><code>Mozilla/5.0 (compatible; GemeluBot/1.0; +https://{BRAND.domain}/bot)</code></p>
+  <h2>Qué lee</h2>
+  <ul>
+    <li>Solo la página HTML del producto (sin imágenes, scripts ni recursos), con un tamaño y tiempo máximos.</li>
+    <li>Los datos estructurados públicos (schema.org, Open Graph) para obtener título, precio, foto y características.</li>
+    <li>Guardamos los datos en caché para no repetir visitas.</li>
+  </ul>
+  <h2>Cómo respetamos tus reglas</h2>
+  <ul>
+    <li>Respetamos robots.txt. Para bloquearnos: <code>User-agent: GemeluBot</code> / <code>Disallow: /</code>.</li>
+    <li>No intentamos superar CAPTCHAs, inicios de sesión ni sistemas anti-bots. Si nos bloqueas, mostramos a quien busca un aviso y le proponemos describir el producto.</li>
+    <li>No enviamos ni guardamos cookies.</li>
+  </ul>
+  <h2>Contacto</h2>
+  <p>¿Dudas o incidencias? <a href={`mailto:${BRAND.contactEmail}`}>{BRAND.contactEmail}</a></p>
+</LegalLayout>

@@ -1,0 +1,132 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import UrlForm from '../components/UrlForm';
+import TrickDemo from '../components/home/TrickDemo.astro';
+import ExamplePreview from '../components/home/ExamplePreview.astro';
+import HowItWorks from '../components/home/HowItWorks.astro';
+import { BRAND } from '../config/brand';
+import { PRIORITY_STORE_NAMES } from '../config/stores';
+import { DEMO_EXAMPLES } from '../lib/search/examples';
+
+export const prerender = true;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: BRAND.name,
+    url: BRAND.siteUrl,
+    inLanguage: 'es-ES',
+    description: BRAND.description,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: BRAND.name,
+    url: BRAND.siteUrl,
+    logo: `${BRAND.siteUrl}/brand/icon-512.png`,
+  },
+];
+
+const trust = [
+  { title: 'No vendemos nada', text: 'Somos una herramienta independiente: te enseñamos alternativas que venden otras tiendas. Tú decides dónde comprar.' },
+  { title: 'Gratis para ti', text: 'Ni registro, ni cuotas, ni apps. Si compras a través de algunos enlaces, la tienda puede pagarnos una comisión, sin coste extra para ti.' },
+  { title: 'Parecido no es idéntico', text: 'Mostramos productos muy similares, no copias. Excluimos artículos que usan marcas ajenas y te decimos qué tan seguros estamos de cada coincidencia.' },
+];
+---
+
+<BaseLayout jsonLd={jsonLd}>
+  <section class="relative overflow-hidden">
+    <div class="container-page pb-12 pt-10 sm:pb-20 sm:pt-20">
+      <div class="mx-auto max-w-3xl text-center">
+        <p class="eyebrow animate-rise">Comparador visual de alternativas</p>
+        <h1 class="display mt-4 animate-rise text-[3.25rem] sm:text-7xl lg:text-[5.5rem]" style="animation-delay:60ms">
+          Lo mismo.<br /><em class="text-terracotta">Por mucho menos.</em>
+        </h1>
+        <p class="mx-auto mt-5 max-w-xl animate-rise text-lg leading-relaxed text-ink-2 sm:text-xl" style="animation-delay:120ms">
+          {BRAND.description}
+        </p>
+        <div class="mx-auto mt-8 max-w-2xl animate-rise" style="animation-delay:180ms">
+          <UrlForm client:load size="hero" />
+          <p class="mt-4 text-sm text-ink-3">
+            También puedes añadir <strong class="font-semibold text-ink">{BRAND.domain}/</strong> delante de cualquier enlace de producto.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-page" aria-labelledby="truco">
+    <div class="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+      <div>
+        <p class="eyebrow">El truco</p>
+        <h2 id="truco" class="display mt-3 text-4xl sm:text-5xl">Tu enlace, con <span class="text-terracotta">{BRAND.domain}/</span> delante.</h2>
+        <p class="mt-4 max-w-md text-[17px] leading-relaxed text-ink-2">
+          Estás viendo una lámpara que te encanta. Añade <strong class="text-ink">{BRAND.domain}/</strong> al principio del enlace y en segundos verás
+          alternativas casi idénticas, ordenadas por parecido y por ahorro real.
+        </p>
+        <p class="mt-4 text-sm text-ink-3">Funciona con {PRIORITY_STORE_NAMES.slice(0, 6).join(', ')} y la mayoría de tiendas online.</p>
+      </div>
+      <TrickDemo />
+    </div>
+  </section>
+
+  <section class="container-page mt-20 sm:mt-28" aria-labelledby="ejemplo" id="ejemplos">
+    <div class="grid items-start gap-8 lg:grid-cols-[1fr_1.25fr] lg:gap-14">
+      <div>
+        <p class="eyebrow">Ejemplo</p>
+        <h2 id="ejemplo" class="display mt-3 text-4xl sm:text-5xl">El original arriba. Sus gemelos, debajo.</h2>
+        <p class="mt-4 max-w-md text-[17px] leading-relaxed text-ink-2">
+          Cada alternativa indica cuánto se parece, su precio con envío cuando lo conocemos y cuánto ahorras de verdad. Sin porcentajes inventados.
+        </p>
+        <div class="mt-6">
+          <p class="text-sm font-semibold">Prueba un ejemplo</p>
+          <ul class="no-scrollbar -mx-1 mt-3 flex flex-wrap gap-2 px-1">
+            {
+              DEMO_EXAMPLES.map((ex) => (
+                <li>
+                  <a href={`/ejemplo/${ex.slug}`} class="chip border border-line-2 bg-card !px-3.5 !py-2 text-sm !font-medium text-ink-2 transition-colors hover:border-ink hover:text-ink">
+                    {ex.chip}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+      <ExamplePreview />
+    </div>
+  </section>
+
+  <section class="container-page mt-20 sm:mt-28" aria-labelledby="como">
+    <div class="max-w-2xl">
+      <p class="eyebrow">Cómo funciona</p>
+      <h2 id="como" class="display mt-3 text-4xl sm:text-5xl">Tres pasos. Cero registros.</h2>
+    </div>
+    <div class="mt-8"><HowItWorks /></div>
+  </section>
+
+  <section class="container-page mt-20 sm:mt-28" aria-labelledby="confianza">
+    <div class="card grid gap-8 p-6 sm:p-10 lg:grid-cols-[1fr_2fr]">
+      <div>
+        <p class="eyebrow">Confianza</p>
+        <h2 id="confianza" class="display mt-3 text-4xl">Claros desde el principio.</h2>
+      </div>
+      <div class="grid gap-6 sm:grid-cols-3">
+        {
+          trust.map((t) => (
+            <div>
+              <h3 class="font-semibold">{t.title}</h3>
+              <p class="mt-2 text-[15px] leading-relaxed text-ink-2">{t.text}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="container-page mt-20 text-center sm:mt-28">
+    <h2 class="display text-4xl sm:text-5xl">¿Tienes un enlace a mano?</h2>
+    <div class="mx-auto mt-6 max-w-xl"><UrlForm client:visible size="compact" /></div>
+  </section>
+</BaseLayout>

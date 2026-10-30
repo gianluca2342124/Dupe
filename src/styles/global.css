@@ -1,0 +1,225 @@
+@import 'tailwindcss';
+
+/*
+ * Gemelu design tokens.
+ * Editorial, warm minimalism: paper background, ink text, one brand accent
+ * (terracotta) used sparingly, and a savings green reserved for money saved.
+ */
+@theme {
+  --font-sans: 'Instrument Sans Variable', 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+
+  --color-paper: #faf8f4;
+  --color-card: #ffffff;
+  --color-sand: #f2ede4;
+  --color-sand-2: #e9e2d6;
+  --color-line: #e7e1d6;
+  --color-line-2: #d6cec0;
+  --color-ink: #1a1915;
+  --color-ink-2: #4a463f;
+  --color-ink-3: #7a7469;
+  --color-terracotta: #b4532f;
+  --color-terracotta-2: #9a4425;
+  --color-terracotta-soft: #f6e6dc;
+  --color-save: #1d6b47;
+  --color-save-soft: #e2f0e7;
+  --color-demo: #7a5c00;
+  --color-demo-soft: #fbf0c9;
+  --color-danger: #a33a2a;
+
+  --radius-card: 1.25rem;
+  --shadow-card: 0 1px 2px rgb(26 25 21 / 0.04), 0 8px 24px -12px rgb(26 25 21 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(26 25 21 / 0.05), 0 18px 40px -18px rgb(26 25 21 / 0.25);
+
+  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    scroll-behavior: smooth;
+  }
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: var(--color-terracotta-soft);
+    color: var(--color-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-terracotta);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .container-page {
+      padding-inline: 1.5rem;
+    }
+  }
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.02;
+  }
+  .eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-ink-3);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.625rem 1.125rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    line-height: 1;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .btn:active {
+    transform: scale(0.98);
+  }
+  .btn-primary {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+  .btn-primary:hover {
+    background: #000;
+  }
+  .btn-accent {
+    background: var(--color-terracotta);
+    color: #fff;
+  }
+  .btn-accent:hover {
+    background: var(--color-terracotta-2);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-ink);
+    border: 1px solid var(--color-line-2);
+  }
+  .btn-ghost:hover {
+    background: var(--color-sand);
+  }
+  .card {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .prose-legal h2 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .prose-legal h3 {
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .prose-legal p,
+  .prose-legal li {
+    color: var(--color-ink-2);
+    line-height: 1.7;
+  }
+  .prose-legal p {
+    margin-block: 0.75rem;
+  }
+  .prose-legal ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin-block: 0.75rem;
+  }
+  .prose-legal a {
+    color: var(--color-terracotta);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .pending {
+    background: var(--color-demo-soft);
+    color: var(--color-demo);
+    border-radius: 6px;
+    padding: 0 0.3rem;
+    font-weight: 600;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+}

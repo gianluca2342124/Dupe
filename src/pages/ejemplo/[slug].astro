@@ -1,0 +1,32 @@
+---
+import { env } from 'cloudflare:workers';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ResultsApp from '../../components/results/ResultsApp';
+import { BRAND } from '../../config/brand';
+import { getServices } from '../../lib/server/services';
+import { exampleSource } from '../../lib/search/examples';
+
+export const prerender = false;
+
+const slug = Astro.params.slug ?? '';
+const source = exampleSource(slug);
+if (!source) return new Response(null, { status: 404 });
+
+const { search, config } = getServices(env as unknown as Record<string, unknown>);
+const result = await search.searchExample(source, { entryMode: 'example', waitUntil: (p) => Astro.locals.cfContext?.waitUntil(p) }, () => {});
+---
+
+<BaseLayout title={`Ejemplo: ${source.title}`} description={`Ejemplo de demostración de ${BRAND.name} con datos ficticios.`} noindex headerVariant="compact">
+  <ResultsApp
+    client:load
+    query={{ kind: 'example', slug }}
+    via="example"
+    initialResult={result}
+    initialError={null}
+    initialStoreName="Tienda de ejemplo"
+    shareUrl={`${config.siteUrl}/ejemplo/${slug}`}
+    domain={BRAND.domain}
+    providerLabel="el catálogo de demostración"
+    ads={{ enabled: false, client: null, slot: null }}
+  />
+</BaseLayout>

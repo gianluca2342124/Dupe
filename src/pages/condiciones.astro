@@ -1,0 +1,49 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { BRAND } from '../config/brand';
+export const prerender = true;
+---
+
+<LegalLayout title="Condiciones de uso" description={`Condiciones para usar ${BRAND.name}.`} updated="30 de octubre de 2026">
+  <h2>1. El servicio</h2>
+  <p>
+    {BRAND.name} es un servicio gratuito e informativo para descubrir alternativas de compra. Puedes usarlo sin registro. Podemos modificarlo,
+    suspenderlo o limitarlo en cualquier momento, por ejemplo para proteger su funcionamiento.
+  </p>
+
+  <h2>2. Información de terceros</h2>
+  <p>
+    Mostramos información publicada por tiendas y catálogos de afiliación (títulos, imágenes, precios, envío, valoraciones). Hacemos lo posible por que
+    sea correcta y la verificamos con reglas automáticas, pero puede contener errores o estar desactualizada. La información vinculante es siempre la
+    de la tienda en el momento de la compra.
+  </p>
+
+  <h2>3. Parecido no es identidad</h2>
+  <p>
+    Las etiquetas «Muy similar», «Similar» o «Baja confianza» son estimaciones automáticas. Solo indicamos «Mismo producto» cuando hay un código
+    verificable común. No garantizamos que una alternativa sea del mismo fabricante, tenga la misma calidad o cumpla las mismas normas.
+  </p>
+
+  <h2>4. Uso permitido</h2>
+  <ul>
+    <li>Usa {BRAND.name} para tus búsquedas personales o para compartir hallazgos.</li>
+    <li>No está permitido automatizar consultas masivas, intentar acceder a sistemas internos, ni usar el servicio para atacar o sobrecargar a terceros.</li>
+    <li>No envíes enlaces a páginas que no sean públicas o que requieran iniciar sesión.</li>
+  </ul>
+
+  <h2>5. Compras</h2>
+  <p>
+    Las compras se realizan directamente en la tienda elegida, bajo sus condiciones de venta, garantías y política de devoluciones. {BRAND.name} no es
+    vendedor ni intermediario en esa compra.
+  </p>
+
+  <h2>6. Responsabilidad</h2>
+  <p>
+    En la medida permitida por la ley, {BRAND.name} no responde de los daños derivados de decisiones de compra tomadas con la información mostrada, de
+    la actuación de tiendas de terceros ni de interrupciones del servicio. Nada en estas condiciones limita los derechos que te reconoce la normativa
+    de consumidores.
+  </p>
+
+  <h2>7. Ley aplicable</h2>
+  <p>Estas condiciones se rigen por la ley española.</p>
+</LegalLayout>

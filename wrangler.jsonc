@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gemelu",
+  // Custom entry: captures `gemelu.com/https://…` before Astro normalises the
+  // path, then delegates to the Astro handler. Also hosts the cron handler.
+  "main": "./src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "workers_dev": true,
+  "preview_urls": true,
+
+  // Non-secret configuration. Secrets (API keys, service role keys, admin
+  // password…) are set with `wrangler secret put NAME` — never here.
+  // See .env.example for the complete list.
+  "vars": {
+    "PUBLIC_SITE_URL": "https://gemelu.com",
+    "PRODUCT_PROVIDER": "demo",
+    "FETCH_MODE": "live",
+    "SOURCE_HOST_POLICY": "public",
+    "VISION_PROVIDER": "none",
+    "ADS_ENABLED": "false",
+    "SHOW_SIMILARITY_PERCENT": "false",
+    "LOG_LEVEL": "info"
+  },
+
+  // Edge cache for search results (L2). Auto-provisioned on first deploy.
+  "kv_namespaces": [{ "binding": "GEMELU_CACHE" }],
+
+  // Abuse protection: per-IP limits evaluated at the edge (free).
+  "ratelimits": [
+    { "name": "SEARCH_LIMITER", "namespace_id": "4801", "simple": { "limit": 12, "period": 60 } },
+    { "name": "CLICK_LIMITER", "namespace_id": "4802", "simple": { "limit": 60, "period": 60 } }
+  ],
+
+  // Scheduled jobs (UTC): price/availability refresh + daily maintenance.
+  "triggers": { "crons": ["23 */6 * * *", "47 3 * * *"] }
+}

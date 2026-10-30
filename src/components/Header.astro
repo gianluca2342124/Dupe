@@ -1,0 +1,28 @@
+---
+import Logo from './Logo.astro';
+
+interface Props {
+  variant?: 'default' | 'compact';
+}
+const { variant = 'default' } = Astro.props;
+---
+
+<header class="sticky top-0 z-40 border-b border-transparent bg-paper/85 backdrop-blur-md supports-[backdrop-filter]:bg-paper/70" data-header>
+  <div class:list={['container-page flex items-center justify-between', variant === 'compact' ? 'h-14' : 'h-16']}>
+    <a href="/" class="rounded-lg" aria-label="Gemelu, ir al inicio">
+      <Logo size={variant === 'compact' ? 24 : 28} />
+    </a>
+    <nav aria-label="Principal" class="flex items-center gap-1 text-sm">
+      <a href="/como-funciona" class="rounded-full px-3 py-2 font-medium text-ink-2 transition-colors hover:bg-sand hover:text-ink">Cómo funciona</a>
+      <a href="/#ejemplos" class="hidden rounded-full px-3 py-2 font-medium text-ink-2 transition-colors hover:bg-sand hover:text-ink sm:inline-flex">Ejemplos</a>
+    </nav>
+  </div>
+</header>
+<script>
+  const header = document.querySelector<HTMLElement>('[data-header]');
+  if (header) {
+    const onScroll = () => header.classList.toggle('border-line', window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+</script>

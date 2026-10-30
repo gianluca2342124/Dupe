@@ -1,0 +1,21 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { BRAND } from '../config/brand';
+export const prerender = true;
+---
+
+<LegalLayout title={`Sobre ${BRAND.name}`} description={`Qué es ${BRAND.name} y por qué existe.`} updated="30 de octubre de 2026" draft={false} eyebrow="Empresa">
+  <p class="!text-xl !leading-relaxed !text-ink">{BRAND.positioning}</p>
+  <p>
+    Muchos productos de diseño tienen alternativas casi idénticas que cuestan una fracción del precio. Encontrarlas lleva tiempo: hay que saber qué
+    buscar, en qué idioma y cómo filtrar anuncios engañosos. {BRAND.name} hace ese trabajo en segundos a partir de un simple enlace.
+  </p>
+  <h2>Lo que nos importa</h2>
+  <ul>
+    <li><strong>Simplicidad:</strong> un enlace y listo. Sin registro, sin apps.</li>
+    <li><strong>Honestidad:</strong> parecido no es idéntico, y lo decimos. Sin porcentajes inventados ni ofertas ficticias.</li>
+    <li><strong>Respeto:</strong> no mostramos réplicas que usan marcas ajenas y respetamos a las tiendas que no quieren ser leídas.</li>
+  </ul>
+  <h2>Quién está detrás</h2>
+  <p><span class="pending">PENDIENTE: presentación del equipo y datos de la empresa</span></p>
+</LegalLayout>

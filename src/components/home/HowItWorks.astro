@@ -1,0 +1,33 @@
+---
+import { BRAND } from '../../config/brand';
+
+const steps = [
+  {
+    n: '1',
+    title: 'Copia un enlace',
+    text: 'Abre el producto que te gusta en cualquier tienda online —IKEA, Zara Home, Kave Home, Sklum…— y copia su enlace.',
+  },
+  {
+    n: '2',
+    title: `Añade ${BRAND.domain}/`,
+    text: `Escribe ${BRAND.domain}/ delante del enlace en la barra del navegador, o pégalo en el buscador de esta página.`,
+  },
+  {
+    n: '3',
+    title: 'Descubre alternativas más baratas',
+    text: 'Leemos el producto, entendemos su forma, material y color, y te mostramos alternativas parecidas con su precio real.',
+  },
+];
+---
+
+<ol class="grid gap-4 sm:grid-cols-3">
+  {
+    steps.map((s) => (
+      <li class="card p-5 sm:p-6">
+        <span class="display flex size-10 items-center justify-center rounded-full bg-sand text-2xl text-ink">{s.n}</span>
+        <h3 class="mt-4 text-lg font-semibold tracking-tight">{s.title}</h3>
+        <p class="mt-2 text-[15px] leading-relaxed text-ink-2">{s.text}</p>
+      </li>
+    ))
+  }
+</ol>

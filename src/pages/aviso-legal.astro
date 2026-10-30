@@ -1,0 +1,48 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { BRAND } from '../config/brand';
+export const prerender = true;
+const P = (t: string) => `<span class="pending">PENDIENTE: ${t}</span>`;
+---
+
+<LegalLayout title="Aviso legal" description={`Información legal sobre ${BRAND.name}.`} updated="30 de octubre de 2026">
+  <h2>Titular del sitio web</h2>
+  <p>En cumplimiento del artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE):</p>
+  <ul>
+    <li>Titular: <Fragment set:html={P('nombre o razón social')} /></li>
+    <li>NIF/CIF: <Fragment set:html={P('NIF/CIF')} /></li>
+    <li>Domicilio: <Fragment set:html={P('dirección')} /></li>
+    <li>Datos registrales: <Fragment set:html={P('Registro Mercantil, tomo, folio, hoja (si es sociedad)')} /></li>
+    <li>Correo electrónico: <a href={`mailto:${BRAND.contactEmail}`}>{BRAND.contactEmail}</a></li>
+    <li>Sitio web: {BRAND.domain}</li>
+  </ul>
+
+  <h2>Objeto</h2>
+  <p>
+    {BRAND.name} es una herramienta gratuita que, a partir del enlace de un producto de una tienda online, muestra alternativas parecidas a la venta en
+    otras tiendas. {BRAND.name} no vende productos, no interviene en las compras y no es parte de los contratos entre quien compra y las tiendas.
+  </p>
+
+  <h2>Responsabilidad</h2>
+  <p>
+    Los precios, gastos de envío, disponibilidad, plazos y características de los productos los fijan y publican las tiendas. Los mostramos tal como los
+    recibimos en el momento indicado y pueden cambiar. Comprueba siempre las condiciones en la tienda antes de comprar.
+  </p>
+  <p>
+    Que una alternativa se parezca a otro producto no implica que la fabrique la misma empresa ni que tenga la misma calidad, materiales o
+    certificaciones.
+  </p>
+
+  <h2>Marcas y propiedad intelectual</h2>
+  <p>
+    Los nombres de tiendas y marcas de terceros se citan solo para identificar el producto que nos indicas (uso descriptivo) y pertenecen a sus
+    titulares, que no patrocinan ni avalan {BRAND.name}. Las imágenes de productos proceden de las propias tiendas o de los catálogos de afiliación
+    que nos autorizan a mostrarlas. Si eres titular de derechos y crees que algún contenido no debería mostrarse, escríbenos.
+  </p>
+
+  <h2>Enlaces de afiliación</h2>
+  <p>Algunos enlaces son de afiliación. Más información en <a href="/afiliacion">Enlaces de afiliación</a>.</p>
+
+  <h2>Legislación aplicable</h2>
+  <p>Este aviso se rige por la legislación española. <Fragment set:html={P('fuero aplicable, revisar con asesoría')} /></p>
+</LegalLayout>

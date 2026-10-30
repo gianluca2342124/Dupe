@@ -1,0 +1,99 @@
+---
+import { env } from 'cloudflare:workers';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { verifyGoToken } from '../../lib/affiliate/go-token';
+import { getServices } from '../../lib/server/services';
+import { clientKey, country, deviceClass } from '../../lib/server/request';
+import { randomId } from '../../lib/security/crypto';
+
+export const prerender = false;
+
+/**
+ * Outbound redirect. Only signed tokens produced by our search are accepted
+ * and only allow-listed merchant/affiliate hosts are reachable — never an
+ * open redirect. The official link is passed through untouched, except for
+ * Awin's documented `clickref` parameter used to reconcile commissions.
+ */
+const { config, store, clickLimiter, logger } = getServices(env as unknown as Record<string, unknown>);
+const token = Astro.params.token ?? '';
+const verification = await verifyGoToken(token, config.linkSigningSecret ?? 'insecure-dev-secret', { extraHosts: config.goAllowedHosts });
+
+Astro.response.headers.set('cache-control', 'no-store');
+Astro.response.headers.set('x-robots-tag', 'noindex, nofollow');
+
+let demo = false;
+if (!verification.ok) {
+  Astro.response.status = 404;
+  logger.info('go: rejected token', { reason: verification.reason });
+} else {
+  const p = verification.payload;
+  const ua = Astro.request.headers.get('user-agent');
+  const device = deviceClass(ua);
+  const limited = !(await clickLimiter.limit(`click:${clientKey(Astro.request)}`)).success;
+  const clickId = randomId(9);
+  if (device !== 'bot' && !limited) {
+    Astro.locals.cfContext?.waitUntil(
+      store
+        .logClick({
+          clickId,
+          at: new Date().toISOString(),
+          searchId: p.s,
+          provider: p.p,
+          providerProductId: p.i,
+          rank: p.r,
+          tier: p.t,
+          isAffiliate: p.a === 1,
+          isDemo: p.u === null,
+          deviceClass: device,
+          country: country(Astro.request),
+        })
+        .catch(() => undefined),
+    );
+  }
+  if (p.u === null) {
+    demo = true;
+  } else {
+    let destination = p.u;
+    try {
+      const u = new URL(destination);
+      if (/(^|\.)awin1\.com$/.test(u.hostname) && !u.searchParams.has('clickref')) {
+        u.searchParams.set('clickref', clickId);
+        destination = u.href;
+      }
+    } catch {
+      // verified earlier; keep as is
+    }
+    return new Response(null, {
+      status: 302,
+      headers: { location: destination, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer-when-downgrade', 'x-robots-tag': 'noindex, nofollow' },
+    });
+  }
+}
+---
+
+<BaseLayout title={demo ? 'Producto de demostración' : 'Enlace no válido'} noindex headerVariant="compact">
+  <div class="container-page max-w-xl py-16 text-center sm:py-24">
+    {
+      demo ? (
+        <>
+          <span class="chip bg-demo-soft text-demo">DEMO</span>
+          <h1 class="display mt-4 text-4xl sm:text-5xl">Este producto es de demostración</h1>
+          <p class="mt-4 text-[17px] leading-relaxed text-ink-2">
+            Gemelu está funcionando en modo demostración: esta alternativa, su foto y su precio son ficticios y no existen en AliExpress. Cuando conectemos
+            el catálogo real, este botón te llevará a la ficha del producto.
+          </p>
+        </>
+      ) : (
+        <>
+          <h1 class="display text-4xl sm:text-5xl">Este enlace no es válido</h1>
+          <p class="mt-4 text-[17px] leading-relaxed text-ink-2" data-testid="go-invalid">
+            Puede que haya caducado o que no lo hayamos generado nosotros. Vuelve a buscar el producto para obtener un enlace nuevo.
+          </p>
+        </>
+      )
+    }
+    <div class="mt-8 flex flex-wrap justify-center gap-2">
+      <a href="/" class="btn btn-primary">Buscar otro producto</a>
+    </div>
+  </div>
+</BaseLayout>

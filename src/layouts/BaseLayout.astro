@@ -1,0 +1,116 @@
+---
+import '@fontsource-variable/instrument-sans';
+import '@fontsource/instrument-serif/400.css';
+import '@fontsource/instrument-serif/400-italic.css';
+import '../styles/global.css';
+import { BRAND } from '../config/brand';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Absolute or root-relative canonical URL. */
+  canonical?: string;
+  noindex?: boolean;
+  ogImage?: string;
+  ogType?: 'website' | 'article';
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  /** Hide header/footer (e.g. redirect interstitials). */
+  bare?: boolean;
+  headerVariant?: 'default' | 'compact';
+}
+
+const {
+  title,
+  description = BRAND.description,
+  canonical,
+  noindex = false,
+  ogImage = '/og/default.png',
+  ogType = 'website',
+  jsonLd,
+  bare = false,
+  headerVariant = 'default',
+} = Astro.props;
+
+const site = (Astro.site?.href ?? BRAND.siteUrl).replace(/\/$/, '');
+const fullTitle = title ? `${title} · ${BRAND.name}` : `${BRAND.name} — ${BRAND.tagline}`;
+const canonicalUrl = canonical ? (canonical.startsWith('http') ? canonical : `${site}${canonical}`) : `${site}${Astro.url.pathname === '/' ? '/' : Astro.url.pathname}`;
+const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${site}${ogImage}`;
+const webAnalyticsToken = import.meta.env.PUBLIC_CF_WEB_ANALYTICS_TOKEN;
+const ldList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+---
+
+<!doctype html>
+<html lang="es-ES">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large'} />
+    <meta name="theme-color" content="#FAF8F4" />
+    <meta name="color-scheme" content="light" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <meta property="og:site_name" content={BRAND.name} />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={title ?? `${BRAND.name} — ${BRAND.tagline}`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${BRAND.name}: ${BRAND.tagline}`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title ?? `${BRAND.name} — ${BRAND.tagline}`} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    {ldList.map((ld) => <script type="application/ld+json" set:html={JSON.stringify(ld).replace(/</g, '\\u003c')} />)}
+    <slot name="head" />
+  </head>
+  <body class="flex min-h-dvh flex-col">
+    <a href="#contenido" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-paper">
+      Saltar al contenido
+    </a>
+    {!bare && <Header variant={headerVariant} />}
+    <main id="contenido" class="flex-1">
+      <slot />
+    </main>
+    {!bare && <Footer />}
+
+    <!-- Cookieless, identifier-free page counter (no IP or user agent is stored). -->
+    <script is:inline>
+      (function () {
+        try {
+          if (navigator.doNotTrack === '1' || navigator.webdriver) return;
+          var p = new URLSearchParams(location.search);
+          var ref = '';
+          try {
+            ref = document.referrer ? new URL(document.referrer).hostname : '';
+          } catch (e) {}
+          if (ref === location.hostname) ref = '';
+          var body = JSON.stringify({
+            type: 'pageview',
+            path: location.pathname.slice(0, 200),
+            ref: ref,
+            utm_source: p.get('utm_source'),
+            utm_medium: p.get('utm_medium'),
+            utm_campaign: p.get('utm_campaign'),
+          });
+          if (navigator.sendBeacon) navigator.sendBeacon('/api/event', new Blob([body], { type: 'application/json' }));
+        } catch (e) {}
+      })();
+    </script>
+    {
+      webAnalyticsToken && (
+        <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token: webAnalyticsToken })} />
+      )
+    }
+  </body>
+</html>

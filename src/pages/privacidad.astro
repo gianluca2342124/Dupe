@@ -1,0 +1,85 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { BRAND } from '../config/brand';
+export const prerender = true;
+const P = (t: string) => `<span class="pending">PENDIENTE: ${t}</span>`;
+---
+
+<LegalLayout title="Política de privacidad" description={`Cómo trata ${BRAND.name} los datos de quien usa el servicio.`} updated="30 de octubre de 2026">
+  <p>
+    En {BRAND.name} queremos que puedas usar el servicio sin darnos datos personales: no hay cuentas, ni formularios obligatorios, ni cookies de
+    seguimiento propias. Esta política explica qué información se trata cuando usas la web y con qué finalidad, conforme al Reglamento (UE) 2016/679
+    (RGPD) y a la Ley Orgánica 3/2018 (LOPDGDD).
+  </p>
+
+  <h2>Responsable del tratamiento</h2>
+  <ul>
+    <li>Titular: <Fragment set:html={P('nombre o razón social')} /></li>
+    <li>NIF: <Fragment set:html={P('NIF/CIF')} /></li>
+    <li>Domicilio: <Fragment set:html={P('dirección postal')} /></li>
+    <li>Correo de contacto para privacidad: <a href={`mailto:${BRAND.contactEmail}`}>{BRAND.contactEmail}</a> <Fragment set:html={P('confirmar buzón')} /></li>
+  </ul>
+
+  <h2>Qué datos tratamos</h2>
+  <h3>1. Los enlaces que nos envías</h3>
+  <p>
+    Para buscar alternativas necesitamos el enlace del producto. Lo guardamos de forma normalizada (sin parámetros de seguimiento) junto con los datos
+    públicos del producto que leemos de la tienda (título, precio, imagen) para acelerar búsquedas repetidas. Un enlace de producto no identifica a
+    quien lo envía y no lo asociamos a ninguna persona.
+  </p>
+  <h3>2. Estadísticas de uso sin identificadores</h3>
+  <p>
+    Registramos eventos agregados —visitas a una página, búsquedas realizadas, clics en una alternativa— con datos aproximados: tipo de dispositivo
+    (móvil, tableta u ordenador), país derivado de la conexión, dominio de procedencia y parámetros de campaña (utm). No guardamos direcciones IP, ni el
+    agente de usuario completo, ni identificadores de sesión, ni cookies.
+  </p>
+  <h3>3. Datos técnicos y de seguridad</h3>
+  <p>
+    Nuestro proveedor de infraestructura (Cloudflare) procesa la dirección IP de cada petición para servir la web, protegerla frente a abusos y limitar
+    el número de búsquedas por minuto. En nuestro código la IP solo se usa en memoria como clave de limitación y no se almacena.
+  </p>
+  <h3>4. Avisos que nos envías</h3>
+  <p>
+    Si pulsas «¿No se parece?» guardamos el aviso (qué producto y qué alternativa) para revisar la calidad de los resultados. No incluye datos
+    personales.
+  </p>
+
+  <h2>Finalidades y base jurídica</h2>
+  <ul>
+    <li>Prestar el servicio que solicitas (buscar alternativas): ejecución de tu solicitud e interés legítimo (art. 6.1.f RGPD).</li>
+    <li>Seguridad, prevención de abusos y control de costes: interés legítimo.</li>
+    <li>Estadísticas agregadas para mejorar el producto: interés legítimo, sin acceso a tu dispositivo ni identificadores.</li>
+    <li>Publicidad personalizada, si se activa en el futuro: solo con tu consentimiento mediante una plataforma de gestión del consentimiento.</li>
+  </ul>
+
+  <h2>Con quién compartimos datos</h2>
+  <ul>
+    <li>Cloudflare, Inc. (alojamiento, red y seguridad), como encargado del tratamiento.</li>
+    <li>Supabase, Inc. (base de datos), como encargado del tratamiento. <Fragment set:html={P('región de alojamiento elegida (recomendado: UE)')} /></li>
+    <li>
+      Cuando pulsas «Ver en AliExpress» sales de {BRAND.name}: a partir de ese momento se aplican las políticas de privacidad de AliExpress y, en su caso, de
+      la red de afiliación (Awin), que pueden usar cookies para atribuir la compra.
+    </li>
+  </ul>
+  <p>
+    Algunos proveedores pueden tratar datos fuera del Espacio Económico Europeo; en ese caso se aplican garantías adecuadas como las cláusulas
+    contractuales tipo de la Comisión Europea. <Fragment set:html={P('revisar contratos de encargado y transferencias')} />
+  </p>
+
+  <h2>Cuánto tiempo los conservamos</h2>
+  <ul>
+    <li>Resultados de búsqueda en caché: entre 6 horas y 30 días, según el dato (precios, disponibilidad, similitud).</li>
+    <li>Estadísticas de uso y clics: 13 meses, después se eliminan automáticamente.</li>
+    <li>Avisos de corrección: hasta su revisión y, como máximo, 24 meses.</li>
+  </ul>
+
+  <h2>Tus derechos</h2>
+  <p>
+    Puedes ejercer los derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a
+    <a href={`mailto:${BRAND.contactEmail}`}>{BRAND.contactEmail}</a>. Como no asociamos los datos a personas, es posible que no podamos identificar
+    información tuya. También puedes reclamar ante la Agencia Española de Protección de Datos (www.aepd.es).
+  </p>
+
+  <h2>Cookies</h2>
+  <p>Consulta la <a href="/cookies">política de cookies</a>.</p>
+</LegalLayout>

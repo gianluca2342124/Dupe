@@ -1,0 +1,29 @@
+---
+import { BRAND } from '../config/brand';
+
+interface Props {
+  size?: number;
+  wordmark?: boolean;
+  class?: string;
+}
+const { size = 28, wordmark = true, class: className = '' } = Astro.props;
+---
+
+<span class:list={['inline-flex items-center gap-2 select-none', className]}>
+  <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" class="shrink-0">
+    <path d="M5 35V17.5a8.5 8.5 0 0 1 17 0V35z" fill="var(--color-ink)"></path>
+    <path
+      d="M18 35V17.5a8.5 8.5 0 0 1 17 0V35z"
+      fill="var(--color-terracotta)"
+      stroke="var(--color-paper)"
+      stroke-width="2.5"
+      stroke-linejoin="round"></path>
+  </svg>
+  {
+    wordmark && (
+      <span class="font-semibold tracking-[-0.035em] text-ink" style={`font-size:${Math.round(size * 0.86)}px;line-height:1`}>
+        {BRAND.wordmark}
+      </span>
+    )
+  }
+</span>

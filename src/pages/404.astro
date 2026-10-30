@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import UrlForm from '../components/UrlForm';
+export const prerender = true;
+---
+
+<BaseLayout title="Página no encontrada" noindex>
+  <section class="container-page max-w-xl py-16 text-center sm:py-24">
+    <p class="eyebrow">Error 404</p>
+    <h1 class="display mt-3 text-5xl sm:text-6xl">Esta página no existe</h1>
+    <p class="mt-4 text-[17px] leading-relaxed text-ink-2">
+      Si querías buscar alternativas a un producto, pega su enlace completo aquí:
+    </p>
+    <div class="mt-8"><UrlForm client:load size="compact" /></div>
+    <a href="/" class="mt-8 inline-block text-sm font-semibold text-terracotta">Ir al inicio</a>
+  </section>
+</BaseLayout>

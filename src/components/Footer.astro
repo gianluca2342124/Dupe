@@ -1,0 +1,69 @@
+---
+import { BRAND } from '../config/brand';
+import Logo from './Logo.astro';
+
+const year = new Date().getFullYear();
+const groups = [
+  {
+    title: 'Producto',
+    links: [
+      { href: '/como-funciona', label: 'Cómo funciona' },
+      { href: '/#ejemplos', label: 'Ejemplos' },
+      { href: '/bot', label: 'GemeluBot para tiendas' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { href: '/privacidad', label: 'Privacidad' },
+      { href: '/cookies', label: 'Cookies' },
+      { href: '/condiciones', label: 'Condiciones de uso' },
+      { href: '/aviso-legal', label: 'Aviso legal' },
+    ],
+  },
+  {
+    title: 'Empresa',
+    links: [
+      { href: '/afiliacion', label: 'Enlaces de afiliación' },
+      { href: '/empresa', label: 'Sobre Gemelu' },
+      { href: '/contacto', label: 'Contacto' },
+    ],
+  },
+];
+---
+
+<footer class="mt-20 border-t border-line bg-paper">
+  <div class="container-page grid gap-10 py-12 sm:grid-cols-[1.4fr_repeat(3,1fr)]">
+    <div class="max-w-xs">
+      <Logo size={24} />
+      <p class="mt-4 text-sm leading-relaxed text-ink-3">
+        {BRAND.name} es una herramienta independiente para descubrir alternativas de compra. No vendemos productos ni cobramos a quien compra.
+      </p>
+    </div>
+    {
+      groups.map((g) => (
+        <div>
+          <p class="eyebrow">{g.title}</p>
+          <ul class="mt-3 space-y-2 text-sm">
+            {g.links.map((l) => (
+              <li>
+                <a href={l.href} class="text-ink-2 transition-colors hover:text-ink">
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </div>
+  <div class="border-t border-line">
+    <div class="container-page flex flex-col gap-3 py-6 text-xs leading-relaxed text-ink-3 sm:flex-row sm:items-center sm:justify-between">
+      <p>
+        Algunos enlaces son de afiliación: si compras, la tienda puede pagarnos una comisión sin coste extra para ti.
+        <a href="/afiliacion" class="underline underline-offset-2 hover:text-ink">Más información</a>.
+      </p>
+      <p class="shrink-0">© {year} {BRAND.name}</p>
+    </div>
+  </div>
+</footer>

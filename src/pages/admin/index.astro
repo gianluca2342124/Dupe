@@ -1,0 +1,215 @@
+---
+import { env } from 'cloudflare:workers';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getServices } from '../../lib/server/services';
+import { timingSafeEqual } from '../../lib/security/crypto';
+import type { AdminMetrics } from '../../lib/data/types';
+
+export const prerender = false;
+
+const { config, store, provider } = getServices(env as unknown as Record<string, unknown>);
+
+// Disabled unless credentials are configured. Put Cloudflare Access in front in production.
+if (!config.admin.user || !config.admin.password) return new Response('Not found', { status: 404 });
+
+const auth = Astro.request.headers.get('authorization') ?? '';
+let authorized = false;
+if (auth.startsWith('Basic ')) {
+  try {
+    const [user, ...rest] = atob(auth.slice(6)).split(':');
+    const pass = rest.join(':');
+    const [okUser, okPass] = await Promise.all([timingSafeEqual(user ?? '', config.admin.user), timingSafeEqual(pass, config.admin.password)]);
+    authorized = okUser && okPass;
+  } catch {
+    authorized = false;
+  }
+}
+if (!authorized) {
+  return new Response('Autenticación necesaria', {
+    status: 401,
+    headers: { 'www-authenticate': 'Basic realm="Gemelu admin", charset="UTF-8"', 'cache-control': 'no-store' },
+  });
+}
+Astro.response.headers.set('cache-control', 'no-store');
+Astro.response.headers.set('x-robots-tag', 'noindex, nofollow');
+
+const days = Math.min(90, Math.max(1, Number(Astro.url.searchParams.get('days') ?? 7) || 7));
+const to = new Date();
+const from = new Date(to.getTime() - days * 86400_000);
+let metrics: AdminMetrics | null = null;
+let loadError: string | null = null;
+try {
+  metrics = await store.getMetrics(from.toISOString(), to.toISOString());
+} catch (err) {
+  loadError = (err as Error).message;
+}
+const [recent, corrections, runs] = await Promise.all([
+  store.recentSearches(30).catch(() => []),
+  store.recentCorrections(20).catch(() => []),
+  store.recentSyncRuns(10).catch(() => []),
+]);
+const health = Astro.url.searchParams.get('deep') === '1' ? await provider.healthCheck().catch((e) => ({ ok: false, configured: true, message: (e as Error).message })) : null;
+
+const pct = (n: number) => `${Math.round(n * 100)} %`;
+const ratio = (a: number, b: number) => (b ? pct(a / b) : '—');
+const fmtMs = (n: number | null) => (n === null ? '—' : n < 1000 ? `${n} ms` : `${(n / 1000).toFixed(1)} s`);
+const tiles = metrics
+  ? [
+      ['Búsquedas', String(metrics.searches)],
+      ['Con resultados', ratio(metrics.searchesWithResults, metrics.searches)],
+      ['Extracción correcta', ratio(metrics.extractionOk, metrics.searches)],
+      ['Solo desde URL', String(metrics.extractionUrlOnly)],
+      ['Alternativas (media)', String(metrics.avgResults)],
+      ['Tiempo medio / p95', `${fmtMs(metrics.avgDurationMs)} / ${fmtMs(metrics.p95DurationMs)}`],
+      ['Aciertos de caché', pct(metrics.cacheHitRate)],
+      ['Visitas', String(metrics.pageviews)],
+      ['Clics salientes', String(metrics.clicks)],
+      ['Clics con afiliación', String(metrics.affiliateClicks)],
+      ['CTR (clics / resultados vistos)', pct(metrics.ctr)],
+      ['Llamadas al proveedor', String(metrics.providerCalls)],
+    ]
+  : [];
+---
+
+<BaseLayout title="Panel" noindex headerVariant="compact">
+  <div class="container-page py-8">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="eyebrow">Administración</p>
+        <h1 class="display mt-2 text-4xl">Panel de Gemelu</h1>
+        <p class="mt-1 text-sm text-ink-3">
+          Últimos {days} días · proveedor <strong>{provider.label}</strong> · almacenamiento <strong>{store.kind}</strong>
+          {store.kind === 'memory' && ' (datos solo en memoria de este isolate: configura Supabase)'}
+        </p>
+      </div>
+      <nav class="flex gap-2 text-sm">
+        {[1, 7, 30, 90].map((d) => <a href={`?days=${d}`} class:list={['btn', d === days ? 'btn-primary' : 'btn-ghost', '!min-h-9']}>{d} d</a>)}
+        <a href={`?days=${days}&deep=1`} class="btn btn-ghost !min-h-9">Comprobar proveedor</a>
+      </nav>
+    </div>
+
+    {config.warnings.length > 0 && (
+      <ul class="mt-6 space-y-1 rounded-2xl bg-demo-soft p-4 text-sm text-demo">
+        {config.warnings.map((w) => <li>⚠ {w}</li>)}
+      </ul>
+    )}
+    {health && <p class:list={['mt-4 rounded-2xl p-4 text-sm', health.ok ? 'bg-save-soft text-save' : 'bg-sand text-danger']}>Proveedor: {health.message}</p>}
+    {loadError && <p class="mt-4 rounded-2xl bg-sand p-4 text-sm text-danger">Error al cargar métricas: {loadError}</p>}
+
+    {metrics && (
+      <>
+        <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {tiles.map(([label, value]) => (
+            <div class="card p-4">
+              <p class="text-xs text-ink-3">{label}</p>
+              <p class="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div class="card mt-4 p-4 text-sm">
+          <p class="font-semibold">Conversiones verificadas por la red (importadas)</p>
+          {metrics.commissions ? (
+            <p class="mt-1 text-ink-2">
+              {metrics.commissions.count} transacciones · {metrics.commissions.amount} {metrics.commissions.currency} de comisión estimada
+            </p>
+          ) : (
+            <p class="mt-1 text-ink-3">Sin datos importados todavía. Los clics registrados aquí no son ventas.</p>
+          )}
+        </div>
+
+        <div class="mt-8 grid gap-4 lg:grid-cols-3">
+          {[
+            ['Dominios más buscados', metrics.topDomains.map((d) => [d.domain, d.count])],
+            ['Categorías (búsquedas / clics)', metrics.topCategories.map((c) => [c.categoryId, `${c.searches} / ${c.clicks}`])],
+            ['Entrada', metrics.entryModes.map((m) => [m.mode, m.count])],
+            ['Fuentes de tráfico', metrics.trafficSources.map((s) => [s.source, s.count])],
+            ['Productos más clicados', metrics.topClickedProducts.map((p) => [`${p.provider}:${p.providerProductId}`, p.clicks])],
+            ['Errores', metrics.errors.map((e) => [e.code, e.count])],
+          ].map(([title, rows]) => (
+            <section class="card p-4">
+              <h2 class="font-semibold">{title as string}</h2>
+              <table class="mt-2 w-full text-sm">
+                <tbody>
+                  {(rows as [string, string | number][]).length === 0 && (
+                    <tr>
+                      <td class="py-1 text-ink-3">Sin datos</td>
+                    </tr>
+                  )}
+                  {(rows as [string, string | number][]).map(([k, v]) => (
+                    <tr class="border-t border-line">
+                      <td class="max-w-[14rem] truncate py-1.5 text-ink-2">{k}</td>
+                      <td class="py-1.5 text-right tabular-nums">{v}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          ))}
+        </div>
+
+        <section class="card mt-4 p-4">
+          <h2 class="font-semibold">Productos más buscados</h2>
+          <ul class="mt-2 space-y-1 text-sm">
+            {metrics.topProducts.length === 0 && <li class="text-ink-3">Sin datos</li>}
+            {metrics.topProducts.map((p) => (
+              <li class="flex justify-between gap-4 border-t border-line pt-1.5">
+                <a href={`/buscar?url=${encodeURIComponent(p.url)}`} class="truncate text-ink-2 hover:underline">{p.title}</a>
+                <span class="tabular-nums">{p.count}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </>
+    )}
+
+    <section class="card mt-4 overflow-x-auto p-4">
+      <h2 class="font-semibold">Búsquedas recientes</h2>
+      <table class="mt-2 w-full min-w-[720px] text-left text-sm">
+        <thead class="text-xs text-ink-3">
+          <tr><th class="py-1">Fecha</th><th>Dominio</th><th>Producto</th><th>Lectura</th><th>Estado</th><th class="text-right">Res.</th><th class="text-right">Tiempo</th><th>Caché</th></tr>
+        </thead>
+        <tbody>
+          {recent.map((r) => (
+            <tr class="border-t border-line">
+              <td class="py-1.5 whitespace-nowrap text-ink-3">{r.createdAt.slice(5, 16).replace('T', ' ')}</td>
+              <td>{r.domain}</td>
+              <td class="max-w-[18rem] truncate">{r.sourceTitle ?? '—'}</td>
+              <td>{r.readMode ?? '—'}</td>
+              <td>{r.errorCode ?? r.status}</td>
+              <td class="text-right tabular-nums">{r.resultCount}</td>
+              <td class="text-right tabular-nums">{fmtMs(r.durationMs)}</td>
+              <td>{r.cacheHit ? 'sí' : ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+
+    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+      <section class="card p-4">
+        <h2 class="font-semibold">Avisos «¿No se parece?»</h2>
+        <ul class="mt-2 space-y-1 text-sm">
+          {corrections.length === 0 && <li class="text-ink-3">Sin avisos</li>}
+          {corrections.map((c) => (
+            <li class="border-t border-line pt-1.5 text-ink-2">
+              {c.at.slice(0, 16).replace('T', ' ')} · {c.kind} · {c.providerProductId} · <span class="text-ink-3">{c.status}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section class="card p-4">
+        <h2 class="font-semibold">Sincronizaciones</h2>
+        <ul class="mt-2 space-y-1 text-sm">
+          {runs.length === 0 && <li class="text-ink-3">Sin ejecuciones</li>}
+          {runs.map((r) => (
+            <li class="border-t border-line pt-1.5 text-ink-2">
+              {r.startedAt.slice(0, 16).replace('T', ' ')} · {r.provider} · {r.kind} · {r.status} · {r.rowsUpserted}/{r.rowsRead}
+              {r.error && <span class="text-danger"> · {r.error}</span>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

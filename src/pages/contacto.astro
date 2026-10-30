@@ -1,0 +1,18 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { BRAND } from '../config/brand';
+export const prerender = true;
+---
+
+<LegalLayout title="Contacto" description={`Cómo contactar con ${BRAND.name}.`} updated="30 de octubre de 2026" draft={false} eyebrow="Empresa">
+  <p>Escríbenos a <a href={`mailto:${BRAND.contactEmail}`}>{BRAND.contactEmail}</a>. Respondemos en días laborables.</p>
+  <h2>Resultados que no se parecen</h2>
+  <p>Usa el botón «¿No se parece?» de cada alternativa: nos llega directamente con el contexto necesario para revisarla.</p>
+  <h2>Tiendas y titulares de derechos</h2>
+  <p>
+    Si gestionas una tienda y prefieres que no leamos tus fichas de producto, puedes bloquear a nuestro lector en tu robots.txt (ver
+    <a href="/bot">GemeluBot</a>) o escribirnos. Si crees que mostramos contenido que infringe tus derechos, indícanos la URL y el motivo.
+  </p>
+  <h2>Prensa y colaboraciones</h2>
+  <p>Mismo correo, indicando «Prensa» o «Colaboración» en el asunto.</p>
+</LegalLayout>

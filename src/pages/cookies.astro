@@ -1,0 +1,30 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { BRAND } from '../config/brand';
+export const prerender = true;
+---
+
+<LegalLayout title="Política de cookies" description={`Qué cookies usa ${BRAND.name}.`} updated="30 de octubre de 2026">
+  <h2>Resumen</h2>
+  <p>
+    {BRAND.name} no instala cookies propias ni usa almacenamiento local para seguirte. Las estadísticas que recogemos se envían sin identificadores y no
+    leen ni guardan información en tu dispositivo. Por eso, hoy no te mostramos un banner de cookies: no hay nada que aceptar.
+  </p>
+
+  <h2>Cookies de terceros al salir de la web</h2>
+  <p>
+    Cuando pulsas «Ver en AliExpress» navegas a la web de la tienda (directamente o a través de la red de afiliación Awin). Esas webs pueden instalar
+    sus propias cookies —por ejemplo, para atribuir una compra a nuestro enlace—, bajo sus políticas de cookies. {BRAND.name} no controla esas cookies.
+  </p>
+
+  <h2>Si activamos publicidad</h2>
+  <p>
+    Si en el futuro mostramos anuncios de Google AdSense, te pediremos el consentimiento antes de usar cookies publicitarias, mediante una plataforma
+    de gestión del consentimiento certificada por Google para el Espacio Económico Europeo, y actualizaremos esta página con la lista de cookies.
+  </p>
+
+  <h2>Analítica opcional</h2>
+  <p>
+    Podemos usar Cloudflare Web Analytics, que funciona sin cookies y sin identificar a quien visita la web.
+  </p>
+</LegalLayout>

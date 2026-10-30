@@ -1,0 +1,55 @@
+---
+import { BRAND } from '../../config/brand';
+/**
+ * The core trick, animated with CSS only: a browser address bar where
+ * "gemelu.com/" slides in front of a store link.
+ */
+---
+
+<div class="trick card overflow-hidden" aria-label={`Ejemplo: añade ${BRAND.domain}/ delante del enlace`}>
+  <div class="flex items-center gap-1.5 border-b border-line bg-sand/60 px-4 py-2.5">
+    <span class="size-2.5 rounded-full bg-line-2"></span>
+    <span class="size-2.5 rounded-full bg-line-2"></span>
+    <span class="size-2.5 rounded-full bg-line-2"></span>
+  </div>
+  <div class="px-3 py-4 sm:px-5">
+    <div class="flex h-11 items-center gap-2 overflow-hidden rounded-full border border-line bg-paper px-4 font-mono text-[13px] text-ink-2 sm:text-sm">
+      <svg viewBox="0 0 16 16" class="size-3.5 shrink-0 text-ink-3" aria-hidden="true" fill="currentColor"><path d="M8 1a3.5 3.5 0 0 0-3.5 3.5V6H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-.5V4.5A3.5 3.5 0 0 0 8 1Zm2 5H6V4.5a2 2 0 1 1 4 0Z"></path></svg>
+      <span class="trick-prefix shrink-0 font-semibold text-terracotta">{BRAND.domain}/</span><span class="truncate">https://www.ikea.com/es/es/p/lampara-mesa…</span>
+    </div>
+    <div class="mt-4 grid grid-cols-[auto_1fr] items-center gap-3 text-sm">
+      <span class="trick-step chip bg-sand text-ink-2">1</span><span class="text-ink-2">Copia el enlace del producto que te gusta.</span>
+      <span class="trick-step chip bg-terracotta-soft text-terracotta-2">2</span><span class="text-ink-2">Escribe <strong class="font-semibold text-ink">{BRAND.domain}/</strong> delante y pulsa Ir.</span>
+      <span class="trick-step chip bg-save-soft text-save">3</span><span class="text-ink-2">Mira sus gemelos más baratos.</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .trick-prefix {
+    display: inline-block;
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    animation: type-prefix 6s steps(11, end) infinite;
+  }
+  @keyframes type-prefix {
+    0%,
+    18% {
+      max-width: 0;
+    }
+    38%,
+    92% {
+      max-width: 11ch;
+    }
+    100% {
+      max-width: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .trick-prefix {
+      animation: none;
+      max-width: none;
+    }
+  }
+</style>

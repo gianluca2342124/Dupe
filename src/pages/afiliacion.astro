@@ -1,0 +1,38 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { BRAND } from '../config/brand';
+export const prerender = true;
+---
+
+<LegalLayout title="Enlaces de afiliación" description={`Cómo se financia ${BRAND.name} y qué son los enlaces de afiliación.`} updated="30 de octubre de 2026" draft={false} eyebrow="Transparencia">
+  <h2>Cómo nos financiamos</h2>
+  <p>
+    {BRAND.name} es gratis para ti. Algunos botones «Ver en AliExpress» son enlaces de afiliación: si compras después de pulsarlos, la tienda —o la red de
+    afiliación que gestiona el programa, como Awin— puede pagarnos una comisión. El precio que pagas es el mismo.
+  </p>
+
+  <h2>Cómo lo identificamos</h2>
+  <ul>
+    <li>Cada alternativa con enlace de afiliación lleva la indicación «Afiliado» bajo el botón.</li>
+    <li>Las alternativas sin acuerdo de afiliación enlazan directamente a la tienda y no nos generan ingresos.</li>
+    <li>En modo demostración, los productos son ficticios y no enlazan a ninguna tienda.</li>
+  </ul>
+
+  <h2>Las comisiones no deciden el orden</h2>
+  <p>
+    Ordenamos las alternativas por su parecido con el producto original y por su utilidad como compra (precio comparable, envío, plazo y
+    valoraciones). El importe o la existencia de una comisión no forman parte de ese cálculo.
+  </p>
+
+  <h2>Qué datos se comparten</h2>
+  <p>
+    Al pulsar un enlace, pasamos por una página intermedia propia (/go/…) que registra el clic de forma anónima —qué alternativa y en qué posición— y te
+    lleva al enlace oficial de la tienda o de la red. No modificamos ni sustituimos los sistemas de atribución de terceros. Las redes de afiliación
+    pueden usar cookies en sus propios dominios para atribuir la compra.
+  </p>
+
+  <h2>Publicidad</h2>
+  <p>
+    Si mostramos anuncios, estarán marcados como «Publicidad», separados de los resultados y nunca con el aspecto de una alternativa.
+  </p>
+</LegalLayout>
