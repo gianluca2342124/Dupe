@@ -24,7 +24,7 @@ Gemelu lee la ficha del producto (datos estructurados públicos), entiende qué 
 | Proveedor Awin (importación de feed, búsqueda en catálogo, deep links, comisiones) | ✅ implementado · ⏳ sin credenciales |
 | Supabase (migración validada en Postgres/PGlite, RLS) | ✅ implementado · ⏳ sin proyecto |
 | UI: home, resultados con todos los estados, ejemplos, legales, admin | ✅ |
-| Tests: 102 unitarios + 74 E2E (móvil y escritorio) | ✅ en verde |
+| Tests: 104 unitarios + 74 E2E (móvil y escritorio) | ✅ en verde |
 
 Detalle de límites y pendientes en [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md).
 

@@ -5,7 +5,7 @@ Objetivo: coste fijo mínimo. Todo corre en **un Worker de Cloudflare** (estáti
 ## 0. Requisitos
 
 - Cuenta de Cloudflare con el dominio (`gemelu.com`) en Cloudflare DNS.
-- **Plan Workers Paid (≈ 5 US$/mes) recomendado**: el plan gratuito limita la CPU a ~10 ms por petición y analizar fichas grandes (IKEA sirve ~1,2 MB de HTML) puede superarlo. Comprueba los límites vigentes en la documentación de Cloudflare.
+- **Plan Workers Paid (≈ 5 US$/mes) recomendado**: el plan gratuito limita la CPU a 10 ms por petición y una búsqueda usa más. Medido con una ficha real de IKEA (1,2 MB de HTML): ~18 ms de CPU (~7 ms leerla, ~11 ms comparar con el catálogo demo) y ~80 ms la primera vez en un isolate nuevo. En Free, las búsquedas pueden fallar con el error 1102; la home y las páginas estáticas funcionan. Comprueba los límites vigentes en la documentación de Cloudflare.
 - Node ≥ 22.23.4 (24 LTS recomendado). `npx wrangler login`.
 - (Opcional) proyecto de Supabase en región UE.
 
@@ -25,6 +25,19 @@ npm run deploy               # astro build + wrangler deploy --config dist/serve
 - Comprueba `https://<worker>.workers.dev/api/health`.
 
 > Los secretos se guardan en el Worker con `wrangler secret put` (o en el panel: Workers → gemelu → Settings → Variables and Secrets). Nunca en `wrangler.jsonc` ni en el repositorio.
+
+### Alternativa sin terminal: conectar el repositorio (Workers Builds)
+
+1. Panel de Cloudflare → Workers & Pages → **Create application** → **GitHub** → autoriza y elige el repositorio.
+2. Nombre del Worker: **`gemelu`** (debe coincidir con `name` en `wrangler.jsonc` o la build falla). Rama: la que quieras publicar (`claude/gemelu-v1` mientras no haya `main`). Build command: `npm run build`. Deploy command: el predeterminado, `npx wrangler deploy` (la build deja `.wrangler/deploy/config.json`, que redirige a `dist/server/wrangler.json`).
+3. **Save and Deploy**. El KV se crea solo (su ID solo se ve en el panel; no se escribe en el repositorio). Cada push a la rama vuelve a desplegar.
+4. Settings → Variables and Secrets: `LINK_SIGNING_SECRET`, `ADMIN_USER`, `ADMIN_PASSWORD` como *Secret*.
+
+La imagen de build usa Node 24 (respeta `.nvmrc`) y npm 10; ambos son compatibles (comprobado con `npm@10.9.2 ci`, build y `wrangler deploy --dry-run` sin `--config`).
+
+### Probar sin dominio propio
+
+`https://gemelu.<subdominio>.workers.dev/https://www.ikea.com/es/es/p/…` funciona igual que `gemelu.com/https://…`. Los enlaces de «Compartir» usan el host que sirve la página, así que funcionan antes de tener el dominio; la home sigue mostrando `gemelu.com/` porque es el dominio previsto.
 
 ## 2. Dominio propio
 
@@ -62,7 +75,7 @@ La migración activa RLS sin políticas: la clave `anon` no puede leer nada. No 
 
 - `ci.yml`: typecheck, lint, unitarios, build y E2E en cada PR/push a `main`.
 - `awin-feed-sync.yml`: importación diaria del feed. Activa con la variable de repositorio `AWIN_SYNC_ENABLED=true` y los secretos `AWIN_FEED_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (opcionales `AWIN_API_TOKEN`, `AWIN_ALIEXPRESS_ADVERTISER_ID`).
-- Despliegue continuo (opcional): añade un job con `cloudflare/wrangler-action` y un token con permiso «Edit Workers», o conecta el repositorio en Workers Builds (build command `npm run build`, deploy command `npx wrangler deploy --config dist/server/wrangler.json`, variable `NODE_VERSION=24`).
+- Despliegue continuo (opcional): añade un job con `cloudflare/wrangler-action` y un token con permiso «Edit Workers», o conecta el repositorio en Workers Builds (ver «Alternativa sin terminal» en el apartado 1).
 
 ## 6. Salud y operación
 
