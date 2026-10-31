@@ -1,4 +1,4 @@
-import type { Availability, DataConfidence, Money, ProviderId } from './product';
+import type { Availability, DataConfidence, Money, ProviderId, ReadIssue } from './product';
 import type { CandidateCaveat, MatchTier, MatchingStats, Savings } from './matching';
 
 /** How the user reached the search. Used for analytics only. */
@@ -46,6 +46,8 @@ export interface PublicSourceProduct {
   checkedAt: string;
   confidence: DataConfidence;
   readMode: 'page' | 'url-only' | 'example' | 'text';
+  /** Why the page could not be read, when readMode is "url-only". */
+  readIssue: ReadIssue | null;
   /** Short attribute summary for the UI ("Vidrio · Blanco · 39 cm"). */
   highlights: string[];
 }

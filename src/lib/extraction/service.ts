@@ -1,10 +1,11 @@
-import type { ExtractionMethod, SourceField, SourceProduct } from '../../types/product';
+import type { ExtractionMethod, ReadIssue, ReadIssueReason, SourceField, SourceProduct } from '../../types/product';
 import type { NormalizedProductUrl } from '../url/normalize';
 import type { RobotsChecker } from '../security/robots';
 import { SafeFetchError } from '../security/safe-fetch';
 import { cleanImageUrl, cleanText, cleanUrl } from '../security/sanitize';
 import { applyAdapter } from './adapters';
 import { detectBlock, type BlockKind } from './challenge';
+import { RedirectRefused } from './fetchers';
 import { formatDimensions, mergeDimensions, parseDimensionsFromText } from './dimensions';
 import type { HeadlessRenderer } from './headless';
 import { extractBreadcrumbs, extractJsonLdProduct, mapAvailability } from './jsonld';
@@ -24,17 +25,7 @@ export interface PageFetcher {
   fetchPage(url: string): Promise<FetchedPage>;
 }
 
-export type ExtractionFailure =
-  | 'blocked'
-  | 'robots_disallowed'
-  | 'robots_unreachable'
-  | 'not_product'
-  | 'http_error'
-  | 'timeout'
-  | 'too_large'
-  | 'unsupported_content'
-  | 'fetch_failed'
-  | 'blocked_host';
+export type ExtractionFailure = ReadIssueReason;
 
 export type ExtractionResult =
   | { ok: true; product: SourceProduct; durationMs: number }
@@ -92,9 +83,13 @@ function baseProduct(n: NormalizedProductUrl, checkedAt: string): SourceProduct 
   };
 }
 
-/** Builds a URL-only record: just a descriptive name derived from the path. */
-export function urlOnlyProduct(n: NormalizedProductUrl, checkedAt: string): SourceProduct | null {
-  const name = nameFromUrl(n.canonical);
+/**
+ * Builds a URL-only record: just a descriptive name derived from the path.
+ * `nameUrl` is where a redirect led (short links such as amzn.eu/d/… only
+ * carry the name in their target).
+ */
+export function urlOnlyProduct(n: NormalizedProductUrl, checkedAt: string, issue?: ReadIssue, nameUrl?: string): SourceProduct | null {
+  const name = (nameUrl && nameUrl !== n.canonical ? nameFromUrl(nameUrl) : null) ?? nameFromUrl(n.canonical);
   if (!name) return null;
   const p = baseProduct(n, checkedAt);
   p.title = name;
@@ -102,6 +97,7 @@ export function urlOnlyProduct(n: NormalizedProductUrl, checkedAt: string): Sour
   p.fieldSources.title = 'url-slug';
   p.methods = ['url-slug'];
   p.confidence = 'low';
+  if (issue) p.readIssue = issue;
   return p;
 }
 
@@ -255,38 +251,52 @@ export class ProductExtractionService {
   async extract(n: NormalizedProductUrl): Promise<ExtractionResult> {
     const started = Date.now();
     const checkedAt = this.now().toISOString();
-    const fail = (reason: ExtractionFailure, detail?: string, blockKind?: BlockKind, withFallback = true): ExtractionResult => ({
-      ok: false,
-      reason,
-      ...(detail ? { detail } : {}),
-      ...(blockKind ? { blockKind } : {}),
-      fallback: withFallback ? urlOnlyProduct(n, checkedAt) : null,
-      durationMs: Date.now() - started,
-    });
+    const fail = (
+      reason: ExtractionFailure,
+      opts: { detail?: string | undefined; blockKind?: BlockKind | undefined; nameUrl?: string | undefined; fallback?: boolean } = {},
+    ): ExtractionResult => {
+      const { detail, blockKind } = opts;
+      const issue: ReadIssue = { reason, ...(detail ? { detail } : {}), ...(blockKind ? { block: blockKind } : {}) };
+      return {
+        ok: false,
+        reason,
+        ...(detail ? { detail } : {}),
+        ...(blockKind ? { blockKind } : {}),
+        fallback: opts.fallback === false ? null : urlOnlyProduct(n, checkedAt, issue, opts.nameUrl),
+        durationMs: Date.now() - started,
+      };
+    };
 
     if (this.deps.robots) {
-      const verdict = await this.deps.robots.check(new URL(n.canonical));
-      if (verdict === 'disallowed') return fail('robots_disallowed');
-      if (verdict === 'unreachable') return fail('robots_unreachable');
+      const robots = await this.deps.robots.check(new URL(n.canonical));
+      if (robots.verdict === 'disallowed') return fail('robots_disallowed');
+      if (robots.verdict === 'unreachable') return fail('robots_unreachable', { detail: robots.detail });
+      if (robots.verdict === 'blocked') return fail('blocked', { detail: robots.detail, blockKind: robots.block });
     }
 
     let page: FetchedPage;
     try {
       page = await this.deps.fetcher.fetchPage(n.canonical);
     } catch (err) {
-      if (err instanceof SafeFetchError) {
-        if (err.code === 'timeout') return fail('timeout');
-        if (err.code === 'too_large') return fail('too_large');
-        if (err.code === 'unsupported_content') return fail('unsupported_content');
-        if (err.code === 'blocked_host' || err.code === 'private_address') return fail('blocked_host', err.code);
-        return fail('fetch_failed', err.code);
+      if (err instanceof RedirectRefused) {
+        const { verdict, detail, block } = err.decision;
+        const reason: ExtractionFailure = verdict === 'blocked' ? 'blocked' : verdict === 'unreachable' ? 'robots_unreachable' : 'robots_disallowed';
+        return fail(reason, { detail, blockKind: block, nameUrl: err.url });
       }
-      return fail('fetch_failed', (err as Error).message);
+      if (err instanceof SafeFetchError) {
+        const nameUrl = err.url;
+        if (err.code === 'timeout') return fail('timeout', { nameUrl });
+        if (err.code === 'too_large') return fail('too_large', { nameUrl });
+        if (err.code === 'unsupported_content') return fail('unsupported_content', { nameUrl });
+        if (err.code === 'blocked_host' || err.code === 'private_address') return fail('blocked_host', { detail: err.code });
+        return fail('fetch_failed', { detail: err.code, nameUrl });
+      }
+      return fail('fetch_failed', { detail: 'network' });
     }
 
     const block = detectBlock(page.status, page.html);
-    if (block) return fail('blocked', `HTTP ${page.status}`, block);
-    if (page.status >= 400) return fail('http_error', `HTTP ${page.status}`);
+    if (block) return fail('blocked', { detail: `HTTP ${page.status}`, blockKind: block, nameUrl: page.finalUrl });
+    if (page.status >= 400) return fail('http_error', { detail: `HTTP ${page.status}`, nameUrl: page.finalUrl });
 
     let scan = scanHtml(page.html);
     let product = buildSourceProduct(scan, n, page, checkedAt);
@@ -306,9 +316,9 @@ export class ProductExtractionService {
       }
     }
 
-    if (!product.title) return fail('not_product', 'no title');
+    if (!product.title) return fail('not_product', { detail: 'no title', nameUrl: page.finalUrl });
     if (!hasProductSignals(scan, product) && !(product.image && looksLikeProductPath(page.finalUrl))) {
-      return fail('not_product', 'no product signals', undefined, false);
+      return fail('not_product', { detail: 'no product signals', fallback: false });
     }
     return { ok: true, product, durationMs: Date.now() - started };
   }

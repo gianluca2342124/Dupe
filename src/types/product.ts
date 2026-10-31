@@ -87,6 +87,28 @@ export interface SourceProduct {
   methods: ExtractionMethod[];
   /** How the record was obtained: the real page, only the URL text, an example, or a typed description. */
   readMode: 'page' | 'url-only' | 'example' | 'text';
+  /** Why the store page could not be read (URL-only fallbacks only). */
+  readIssue?: ReadIssue;
+}
+
+export type ReadIssueReason =
+  | 'blocked'
+  | 'robots_disallowed'
+  | 'robots_unreachable'
+  | 'not_product'
+  | 'http_error'
+  | 'timeout'
+  | 'too_large'
+  | 'unsupported_content'
+  | 'fetch_failed'
+  | 'blocked_host';
+
+export interface ReadIssue {
+  reason: ReadIssueReason;
+  /** Short technical hint, safe to show: "HTTP 503", "dns_failed"… */
+  detail?: string;
+  /** Bot-protection signature when reason is "blocked" (see extraction/challenge). */
+  block?: string;
 }
 
 export type SourceField =

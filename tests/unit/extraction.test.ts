@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FixturePageFetcher } from '../../src/lib/extraction/fetchers';
+import { FixturePageFetcher, LivePageFetcher } from '../../src/lib/extraction/fetchers';
 import { FIXTURE_PAGES } from '../../src/lib/extraction/fixtures';
 import { ProductExtractionService } from '../../src/lib/extraction/service';
 import { parseAmount, parsePrice } from '../../src/lib/extraction/price';
@@ -9,14 +9,17 @@ import { detectBlock } from '../../src/lib/extraction/challenge';
 import { nameFromUrl } from '../../src/lib/extraction/url-slug';
 import { normalizeProductUrl } from '../../src/lib/url/normalize';
 import type { HostPolicyConfig } from '../../src/lib/security/host-policy';
+import { createSafeFetcher } from '../../src/lib/security/safe-fetch';
+import { RobotsChecker } from '../../src/lib/security/robots';
 
 const policy: HostPolicyConfig = { mode: 'public', allowlist: [], denylist: [], ownHosts: ['gemelu.com'] };
 const service = new ProductExtractionService({ fetcher: new FixturePageFetcher(FIXTURE_PAGES), robots: null, headless: null, headlessHosts: [] });
-const extract = async (url: string) => {
+const normalized = (url: string) => {
   const n = normalizeProductUrl(url, policy);
   if (!n.ok) throw new Error(n.error);
-  return service.extract(n.value);
+  return n.value;
 };
+const extract = async (url: string) => service.extract(normalized(url));
 
 describe('ProductExtractionService on fixtures', () => {
   it('reads schema.org JSON-LD (IKEA-like page, JSON-LD at the end of a large body)', async () => {
@@ -146,5 +149,53 @@ describe('parsers', () => {
     expect(nameFromUrl('https://www.zarahome.com/es/jarron-ceramica-texturizada-l42345678')).toBe('Jarron ceramica texturizada');
     expect(nameFromUrl('https://www.ikea.com/es/es/p/akterspring-lampara-mesa-blanco-00586548/')).toBe('Akterspring lampara mesa blanco');
     expect(nameFromUrl('https://www.amazon.es/dp/B0ABC12345')).toBeNull();
+  });
+});
+
+describe('ProductExtractionService over a (fake) network', () => {
+  const productUrl = 'https://www.amazon.es/Lampara-Mesa-Seta-Cristal-Blanco/dp/B0ABCDEFGH';
+  const shortLink = { 'https://amzn.eu/d/abc123': () => new Response(null, { status: 301, headers: { location: productUrl } }) };
+  const captcha = '<html><head><title>Amazon.es</title></head><body><form action="/errors/validateCaptcha"></form></body></html>';
+
+  function live(routes: Record<string, () => Response>) {
+    const calls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      calls.push(url);
+      return routes[url]?.() ?? new Response('', { status: 404 });
+    }) as unknown as typeof fetch;
+    const safeFetch = createSafeFetcher({ fetch: fetchImpl, resolver: null, policy });
+    const robots = new RobotsChecker(safeFetch, 'GemeluBot/1.0', 'GemeluBot');
+    const fetcher = new LivePageFetcher(safeFetch, 'GemeluBot/1.0', { timeoutMs: 2000, maxBytes: 1_000_000 }, robots);
+    return { service: new ProductExtractionService({ fetcher, robots, headless: null, headlessHosts: [] }), calls };
+  }
+
+  it('names short links after the page they redirect to, and records why it was not read', async () => {
+    const { service: s } = live({ ...shortLink, [productUrl]: () => new Response(captcha, { status: 503, headers: { 'content-type': 'text/html' } }) });
+    const r = await s.extract(normalized('https://amzn.eu/d/abc123'));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.reason).toBe('blocked');
+    expect(r.fallback?.title).toBe('Lampara mesa seta cristal blanco');
+    expect(r.fallback?.readIssue).toEqual({ reason: 'blocked', detail: 'HTTP 503', block: 'amazon_captcha' });
+  });
+
+  it('honours robots.txt of a redirect target without fetching the page', async () => {
+    const { service: s, calls } = live({
+      ...shortLink,
+      'https://www.amazon.es/robots.txt': () => new Response('User-agent: *\nDisallow: /Lampara-Mesa-Seta-Cristal-Blanco/'),
+      [productUrl]: () => new Response('<html></html>', { headers: { 'content-type': 'text/html' } }),
+    });
+    const r = await s.extract(normalized('https://amzn.eu/d/abc123'));
+    expect(!r.ok && r.reason).toBe('robots_disallowed');
+    expect(!r.ok && r.fallback?.title).toBe('Lampara mesa seta cristal blanco');
+    expect(calls).not.toContain(productUrl);
+  });
+
+  it('does not present a robots.txt server error as a ban', async () => {
+    const { service: s, calls } = live({ 'https://www.ikea.com/robots.txt': () => new Response('error', { status: 500 }) });
+    const r = await s.extract(normalized('https://www.ikea.com/es/es/p/akterspring-lampara-mesa-blanco-00586548/'));
+    expect(!r.ok && r.reason).toBe('robots_unreachable');
+    expect(!r.ok && r.fallback?.readIssue).toEqual({ reason: 'robots_unreachable', detail: 'HTTP 500' });
+    expect(calls).toEqual(['https://www.ikea.com/robots.txt']);
   });
 });

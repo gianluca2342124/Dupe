@@ -96,6 +96,38 @@ function NoticeList({ notices }: { notices: Notice[] }) {
   );
 }
 
+/** URL-only results: let people correct the name we searched for. */
+function RefineSearch({ initial }: { initial: string }) {
+  const [q, setQ] = useState(initial);
+
+  function onSubmit(e: { preventDefault(): void }) {
+    e.preventDefault();
+    const text = q.trim();
+    if (text.length >= 4) window.location.assign(`/buscar?q=${encodeURIComponent(text)}`);
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="card flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-4" role="search" data-testid="refine-search">
+      <label htmlFor="refine" className="shrink-0 text-sm font-semibold">
+        ¿No es exactamente esto? Descríbelo:
+      </label>
+      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-line-2 bg-card p-1 pl-4">
+        <input
+          id="refine"
+          name="q"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="h-10 min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+          data-testid="refine-input"
+        />
+        <button type="submit" className="btn btn-primary !min-h-10 !px-4 text-sm">
+          Buscar
+        </button>
+      </div>
+    </form>
+  );
+}
+
 /** Secondary caveats, shown as quiet footnotes under the summary. */
 function MinorNotices({ notices }: { notices: Notice[] }) {
   const minor = notices.filter((n) => !PRIMARY_NOTICES.includes(n.kind));
@@ -246,6 +278,7 @@ export default function ResultsApp(props: ResultsAppProps) {
         <>
           <SourceCard source={state.result.source} />
           <NoticeList notices={state.result.notices} />
+          {state.result.source.readMode === 'url-only' && <RefineSearch initial={state.result.source.title ?? ''} />}
           <Summary result={state.result} />
 
           {state.result.items.length > 0 ? (
@@ -256,7 +289,9 @@ export default function ResultsApp(props: ResultsAppProps) {
             </div>
           ) : (
             <div className="card p-6 text-[15px] leading-relaxed text-ink-2" data-testid="no-results">
-              Preferimos no enseñarte nada antes que algo que no se parece. Prueba con otro producto o con un enlace de otra tienda.
+              {state.result.provider.isDemo
+                ? 'El catálogo de demostración solo tiene unos 80 artículos de hogar y decoración inventados, y ninguno se parece a este producto. Con AliExpress conectado buscaríamos entre millones de productos reales.'
+                : 'Preferimos no enseñarte nada antes que algo que no se parece. Prueba con otro producto o con un enlace de otra tienda.'}
             </div>
           )}
 

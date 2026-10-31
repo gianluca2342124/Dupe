@@ -1,4 +1,5 @@
-import type { SafeFetcher } from '../security/safe-fetch';
+import type { RobotsChecker, RobotsDecision } from '../security/robots';
+import { SafeFetchError, type SafeFetcher } from '../security/safe-fetch';
 import type { FetchedPage, PageFetcher } from './service';
 
 export const BOT_USER_AGENT_TOKEN = 'GemeluBot';
@@ -7,22 +8,50 @@ export function botUserAgent(siteUrl: string): string {
   return `Mozilla/5.0 (compatible; ${BOT_USER_AGENT_TOKEN}/1.0; +${siteUrl.replace(/\/+$/, '')}/bot)`;
 }
 
+/** A redirect led to a URL that robots.txt (or a bot wall on it) doesn't let us read. */
+export class RedirectRefused extends Error {
+  constructor(
+    public readonly decision: RobotsDecision,
+    public readonly url: string,
+  ) {
+    super(`robots.txt ${decision.verdict} for redirect target`);
+    this.name = 'RedirectRefused';
+  }
+}
+
 /** Live fetcher: SSRF-safe, honest user agent, size and time limits. */
 export class LivePageFetcher implements PageFetcher {
   constructor(
     private readonly safeFetch: SafeFetcher,
     private readonly userAgent: string,
     private readonly limits: { timeoutMs: number; maxBytes: number },
+    /** When set, robots.txt is also honoured for every redirect target. */
+    private readonly robots: RobotsChecker | null = null,
   ) {}
 
   async fetchPage(url: string): Promise<FetchedPage> {
-    const res = await this.safeFetch(url, {
-      userAgent: this.userAgent,
-      timeoutMs: this.limits.timeoutMs,
-      maxBytes: this.limits.maxBytes,
-      allowTruncation: true,
-    });
-    return { status: res.status, finalUrl: res.finalUrl, html: res.body, truncated: res.truncated };
+    const robots = this.robots;
+    const state: { refused: RobotsDecision | null } = { refused: null };
+    try {
+      const res = await this.safeFetch(url, {
+        userAgent: this.userAgent,
+        timeoutMs: this.limits.timeoutMs,
+        maxBytes: this.limits.maxBytes,
+        allowTruncation: true,
+        ...(robots && {
+          beforeRedirect: async (next: URL) => {
+            const decision = await robots.check(next);
+            if (decision.verdict === 'allowed') return null;
+            state.refused = decision;
+            return decision.verdict;
+          },
+        }),
+      });
+      return { status: res.status, finalUrl: res.finalUrl, html: res.body, truncated: res.truncated };
+    } catch (err) {
+      if (state.refused && err instanceof SafeFetchError && err.code === 'redirect_refused') throw new RedirectRefused(state.refused, err.url ?? url);
+      throw err;
+    }
   }
 }
 

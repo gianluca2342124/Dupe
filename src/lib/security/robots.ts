@@ -1,4 +1,5 @@
-import type { SafeFetcher } from './safe-fetch';
+import { detectBlock, type BlockKind } from '../extraction/challenge';
+import { SafeFetchError, type SafeFetcher } from './safe-fetch';
 
 /**
  * robots.txt support (RFC 9309).
@@ -82,13 +83,25 @@ export function isAllowedByRobots(rules: RobotsRules, userAgentToken: string, pa
   return best ? best.allow : true;
 }
 
-/** `unreachable`: robots.txt could not be fetched (network/timeout) — treat as "do not read". */
-export type RobotsVerdict = 'allowed' | 'disallowed' | 'unreachable';
+/**
+ * - `unreachable`: robots.txt could not be fetched (network, timeout, 5xx).
+ *   RFC 9309 §2.3.1.4 says to assume complete disallow, so we don't read the page.
+ * - `blocked`: robots.txt itself sits behind a bot wall (or answers 429), so
+ *   the pages are walled too. Reported as such instead of as a robots rule.
+ */
+export type RobotsVerdict = 'allowed' | 'disallowed' | 'unreachable' | 'blocked';
 
-type LoadedRobots = RobotsRules | 'allow-all' | 'disallow-all' | 'unreachable';
+export interface RobotsDecision {
+  verdict: RobotsVerdict;
+  /** "HTTP 503", "timeout", "dns_failed"… for unreachable/blocked. */
+  detail?: string;
+  block?: BlockKind;
+}
+
+type LoadedRobots = { kind: 'rules'; rules: RobotsRules } | { kind: 'allow-all' } | { kind: 'failed'; decision: RobotsDecision };
 
 export class RobotsChecker {
-  private readonly cache = new Map<string, { rules: LoadedRobots; expires: number }>();
+  private readonly cache = new Map<string, { loaded: LoadedRobots; expires: number }>();
 
   constructor(
     private readonly fetcher: SafeFetcher,
@@ -97,40 +110,39 @@ export class RobotsChecker {
     private readonly ttlMs = 12 * 60 * 60 * 1000,
   ) {}
 
-  async check(url: URL): Promise<RobotsVerdict> {
+  async check(url: URL): Promise<RobotsDecision> {
     const origin = url.origin;
     let entry = this.cache.get(origin);
     if (!entry || entry.expires < Date.now()) {
-      const rules = await this.load(origin);
-      // Don't cache transport failures for long: the store may just be slow.
-      entry = { rules, expires: Date.now() + (rules === 'unreachable' ? 60_000 : this.ttlMs) };
+      const loaded = await this.load(origin);
+      // Don't cache failures for long: the store may just be slow.
+      entry = { loaded, expires: Date.now() + (loaded.kind === 'failed' ? 60_000 : this.ttlMs) };
       if (this.cache.size > 1000) this.cache.clear();
       this.cache.set(origin, entry);
     }
-    if (entry.rules === 'allow-all') return 'allowed';
-    if (entry.rules === 'disallow-all') return 'disallowed';
-    if (entry.rules === 'unreachable') return 'unreachable';
-    return isAllowedByRobots(entry.rules, this.userAgentToken, url.pathname + url.search) ? 'allowed' : 'disallowed';
+    if (entry.loaded.kind === 'allow-all') return { verdict: 'allowed' };
+    if (entry.loaded.kind === 'failed') return entry.loaded.decision;
+    return { verdict: isAllowedByRobots(entry.loaded.rules, this.userAgentToken, url.pathname + url.search) ? 'allowed' : 'disallowed' };
   }
 
   private async load(origin: string): Promise<LoadedRobots> {
+    let res;
     try {
-      const res = await this.fetcher(`${origin}/robots.txt`, {
+      res = await this.fetcher(`${origin}/robots.txt`, {
         userAgent: this.userAgent,
         timeoutMs: 3500,
         maxBytes: 500_000,
         accept: 'text/plain,*/*;q=0.5',
         allowedContentTypes: [],
       });
-      // RFC 9309 §2.3.1.3: 4xx → no restrictions; 5xx → assume complete disallow.
-      if (res.status >= 400 && res.status < 500) return 'allow-all';
-      if (res.status >= 500) return 'disallow-all';
-      return parseRobots(res.body);
-    } catch {
-      // Unreachable robots.txt (network/timeout): RFC 9309 says to assume
-      // complete disallow. We report it separately so the UI can say "the
-      // store did not respond" instead of "the store does not allow it".
-      return 'unreachable';
+    } catch (err) {
+      return { kind: 'failed', decision: { verdict: 'unreachable', detail: err instanceof SafeFetchError ? err.code : 'network' } };
     }
+    const block = res.status >= 400 ? detectBlock(res.status, res.body) : null;
+    if (block) return { kind: 'failed', decision: { verdict: 'blocked', detail: `HTTP ${res.status}`, block } };
+    // RFC 9309 §2.3.1.3–4: 4xx → no restrictions; 5xx → unreachable (assume complete disallow).
+    if (res.status >= 500) return { kind: 'failed', decision: { verdict: 'unreachable', detail: `HTTP ${res.status}` } };
+    if (res.status >= 400) return { kind: 'allow-all' };
+    return { kind: 'rules', rules: parseRobots(res.body) };
   }
 }

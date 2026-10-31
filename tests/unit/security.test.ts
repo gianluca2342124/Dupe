@@ -3,7 +3,7 @@ import { isPublicIp, parseIPv6 } from '../../src/lib/security/ip';
 import { checkHostname, type HostPolicyConfig } from '../../src/lib/security/host-policy';
 import { createSafeFetcher, SafeFetchError, validateOutboundUrl } from '../../src/lib/security/safe-fetch';
 import { StaticResolver } from '../../src/lib/security/dns';
-import { isAllowedByRobots, parseRobots } from '../../src/lib/security/robots';
+import { isAllowedByRobots, parseRobots, RobotsChecker } from '../../src/lib/security/robots';
 import { cleanText, cleanUrl } from '../../src/lib/security/sanitize';
 import { redact } from '../../src/lib/server/logger';
 import { CircuitBreaker, CircuitOpenError, withRetry } from '../../src/lib/security/resilience';
@@ -112,6 +112,25 @@ describe('safe fetch', () => {
     expect(headers.cookie).toBeUndefined();
     expect(init.redirect).toBe('manual');
   });
+
+  it('lets the caller veto a redirect and reports where it was going', async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 301, headers: { location: 'https://www.shop.es/p/lampara-seta' } }));
+    const sf = createSafeFetcher({ fetch: fetchMock as unknown as typeof fetch, resolver: null, policy });
+    const err = await sf('https://short.shop.es/x1', { userAgent: 't', beforeRedirect: async () => 'disallowed' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SafeFetchError);
+    expect(err).toMatchObject({ code: 'redirect_refused', detail: 'disallowed', url: 'https://www.shop.es/p/lampara-seta' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('errors carry the URL that failed, after redirects', async () => {
+    let n = 0;
+    const fetchMock = vi.fn(async () => {
+      if (n++ === 0) return new Response(null, { status: 302, headers: { location: 'https://www.shop.es/p/mesa-roble' } });
+      throw new Error('connection reset');
+    });
+    const sf = createSafeFetcher({ fetch: fetchMock as unknown as typeof fetch, resolver: null, policy });
+    await expect(sf('https://short.shop.es/m', { userAgent: 't' })).rejects.toMatchObject({ code: 'network', url: 'https://www.shop.es/p/mesa-roble' });
+  });
 });
 
 describe('robots.txt', () => {
@@ -123,6 +142,33 @@ describe('robots.txt', () => {
     expect(isAllowedByRobots(rules, 'OtherBot', '/search/x')).toBe(false);
     expect(isAllowedByRobots(rules, 'OtherBot', '/search/ok')).toBe(true);
     expect(isAllowedByRobots(rules, 'OtherBot', '/p?sort=price')).toBe(false);
+  });
+});
+
+describe('robots.txt checker', () => {
+  const page = new URL('https://shop.es/p/lampara-seta');
+  const checkWith = (respond: () => Response) =>
+    new RobotsChecker(createSafeFetcher({ fetch: (async () => respond()) as unknown as typeof fetch, resolver: null, policy }), 'GemeluBot/1.0', 'GemeluBot').check(page);
+
+  it('applies the rules, and reads 4xx as "no rules"', async () => {
+    expect(await checkWith(() => new Response('User-agent: *\nDisallow: /p/'))).toEqual({ verdict: 'disallowed' });
+    expect(await checkWith(() => new Response('User-agent: *\nDisallow: /cart'))).toEqual({ verdict: 'allowed' });
+    expect(await checkWith(() => new Response('', { status: 404 }))).toEqual({ verdict: 'allowed' });
+  });
+
+  it('reports server and network errors as unreachable, not as a ban', async () => {
+    expect(await checkWith(() => new Response('error', { status: 503 }))).toEqual({ verdict: 'unreachable', detail: 'HTTP 503' });
+    expect(
+      await checkWith(() => {
+        throw new Error('connection reset');
+      }),
+    ).toEqual({ verdict: 'unreachable', detail: 'network' });
+  });
+
+  it('recognises bot walls and rate limits on robots.txt itself', async () => {
+    const captcha = '<html><body><form action="/errors/validateCaptcha"></form></body></html>';
+    expect(await checkWith(() => new Response(captcha, { status: 503 }))).toEqual({ verdict: 'blocked', detail: 'HTTP 503', block: 'amazon_captcha' });
+    expect(await checkWith(() => new Response('', { status: 429 }))).toEqual({ verdict: 'blocked', detail: 'HTTP 429', block: 'rate_limited' });
   });
 });
 

@@ -67,7 +67,8 @@ test.describe('prefix trick and results', () => {
   test('blocked stores fall back to the URL text, honestly labelled', async ({ page }) => {
     await page.goto('/https://www.zarahome.com/es/fixture-jarron-ceramica-texturizada-l00000006');
     await expectResults(page);
-    await expect(page.locator('[data-kind="url_only"]')).toBeVisible();
+    await expect(page.locator('[data-kind="url_only"]')).toContainText('no deja que programas automáticos');
+    await expect(page.getByTestId('refine-input')).toHaveValue('Fixture jarron ceramica texturizada');
   });
 
   test('CAPTCHA-protected stores show a clear state and allow describing the product', async ({ page }) => {
@@ -75,6 +76,7 @@ test.describe('prefix trick and results', () => {
     const error = page.getByTestId('error-state');
     await expect(error).toBeVisible({ timeout: 15_000 });
     await expect(error).toHaveAttribute('data-code', 'store_blocked');
+    await expect(error).toContainText('responde con un CAPTCHA');
     await page.getByTestId('describe-input').fill('lámpara de mesa seta de cristal');
     await page.getByRole('button', { name: 'Buscar' }).first().click();
     await page.waitForURL(/\/buscar\?q=/);

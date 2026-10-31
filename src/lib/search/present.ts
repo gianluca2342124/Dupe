@@ -20,6 +20,7 @@ export function toPublicSource(s: SourceProduct): PublicSourceProduct {
     checkedAt: s.checkedAt,
     confidence: s.confidence,
     readMode: s.readMode,
+    readIssue: s.readIssue ?? null,
     highlights: sourceHighlights(s),
   };
 }

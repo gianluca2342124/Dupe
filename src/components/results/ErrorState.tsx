@@ -15,7 +15,7 @@ const TITLES: Partial<Record<SearchErrorCode, string>> = {
   invalid_query: 'Necesitamos un poco más de detalle',
   not_a_product: 'Esa página no es la ficha de un producto',
   store_blocked: 'La tienda no nos deja leer esta página',
-  robots_disallowed: 'La tienda no permite la lectura automática',
+  robots_disallowed: 'La tienda pide que no se lea esta página',
   fetch_failed: 'No hemos podido abrir la página',
   timeout: 'La tienda ha tardado demasiado',
   provider_unavailable: 'Error temporal del buscador de alternativas',
@@ -42,13 +42,7 @@ export default function ErrorState({ code, message, suggestion, onRetry }: Props
     <section className="card animate-rise p-5 sm:p-8" role="alert" data-testid="error-state" data-code={code}>
       <p className="eyebrow">No ha podido ser</p>
       <h2 className="display mt-2 text-3xl sm:text-4xl">{TITLES[code] ?? 'No hemos podido completar la búsqueda'}</h2>
-      {code === 'store_blocked' || code === 'robots_disallowed' ? (
-        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-2">
-          Algunas tiendas bloquean la lectura automática de sus páginas. Respetamos esa decisión y no intentamos saltárnosla.
-        </p>
-      ) : (
-        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-2">{message}</p>
-      )}
+      <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-2">{message}</p>
 
       {CAN_DESCRIBE.includes(code) && (
         <form onSubmit={onDescribe} className="mt-6 max-w-xl" role="search">

@@ -29,6 +29,7 @@ export type SafeFetchErrorCode =
   | 'timeout'
   | 'too_large'
   | 'unsupported_content'
+  | 'redirect_refused'
   | 'network';
 
 export class SafeFetchError extends Error {
@@ -36,6 +37,8 @@ export class SafeFetchError extends Error {
     public readonly code: SafeFetchErrorCode,
     message: string,
     public readonly detail?: HostRejection | string,
+    /** URL being fetched when the error happened (after redirects). */
+    public readonly url?: string,
   ) {
     super(message);
     this.name = 'SafeFetchError';
@@ -53,6 +56,11 @@ export interface SafeFetchOptions {
   allowedContentTypes?: readonly string[];
   /** When the body exceeds maxBytes, keep the first maxBytes instead of failing. */
   allowTruncation?: boolean;
+  /**
+   * Called before following each redirect, with the validated target.
+   * Return null to follow it, or a reason to stop (e.g. robots.txt).
+   */
+  beforeRedirect?: (next: URL) => Promise<string | null>;
 }
 
 export interface SafeFetchResult {
@@ -113,14 +121,16 @@ export function createSafeFetcher(deps: SafeFetcherDeps): SafeFetcher {
       acceptLanguage = 'es-ES,es;q=0.9,en;q=0.6',
       allowedContentTypes = ['text/html', 'application/xhtml+xml'],
       allowTruncation = true,
+      beforeRedirect,
     } = options;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     const redirects: string[] = [];
+    let current: URL | null = null;
 
     try {
-      let current = validateOutboundUrl(rawUrl, deps.policy);
+      current = validateOutboundUrl(rawUrl, deps.policy);
       for (let hop = 0; ; hop++) {
         if (deps.resolver) {
           try {
@@ -162,7 +172,10 @@ export function createSafeFetcher(deps: SafeFetcherDeps): SafeFetcher {
             throw new SafeFetchError('invalid_url', 'Invalid redirect target');
           }
           redirects.push(current.href);
-          current = validateOutboundUrl(next, deps.policy);
+          next = validateOutboundUrl(next, deps.policy);
+          const refusal = beforeRedirect ? await beforeRedirect(next) : null;
+          if (refusal) throw new SafeFetchError('redirect_refused', `Redirect to ${next.host} not followed`, refusal, next.href);
+          current = next;
           continue;
         }
 
@@ -194,9 +207,10 @@ export function createSafeFetcher(deps: SafeFetcherDeps): SafeFetcher {
         };
       }
     } catch (err) {
-      if (err instanceof SafeFetchError) throw err;
-      if (controller.signal.aborted) throw new SafeFetchError('timeout', 'Request timed out');
-      throw new SafeFetchError('network', (err as Error).message);
+      const at = current?.href;
+      if (err instanceof SafeFetchError) throw err.url || !at ? err : new SafeFetchError(err.code, err.message, err.detail, at);
+      if (controller.signal.aborted) throw new SafeFetchError('timeout', 'Request timed out', undefined, at);
+      throw new SafeFetchError('network', (err as Error).message, undefined, at);
     } finally {
       clearTimeout(timer);
     }

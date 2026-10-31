@@ -62,6 +62,10 @@ describe('SearchService (fixtures + demo provider)', () => {
     expect(r.source.readMode).toBe('url-only');
     expect(r.source.price).toBeNull();
     expect(r.notices.map((n) => n.kind)).toContain('url_only');
+    expect(r.source.readIssue).toMatchObject({ reason: 'blocked', block: 'akamai' });
+    expect(r.notices.find((n) => n.kind === 'url_only')?.message).toBe(
+      'Zara Home no deja que programas automáticos como Gemelu lean sus fichas (responde con la protección antibots de Akamai). No intentamos saltarnos ese bloqueo. Hemos buscado por el nombre que aparece en el enlace («Fixture jarron ceramica texturizada»), sin foto ni precio del original.',
+    );
     expect(r.items.length).toBeGreaterThan(0);
   });
 

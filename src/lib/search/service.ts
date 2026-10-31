@@ -1,5 +1,5 @@
 import { ALGORITHM_VERSION, type MatchingConfig } from '../../config/matching';
-import type { SourceProduct } from '../../types/product';
+import type { ReadIssue, SourceProduct } from '../../types/product';
 import type { ProductAnalysis } from '../../types/matching';
 import type {
   EntryMode,
@@ -21,6 +21,7 @@ import { randomId } from '../security/crypto';
 import type { HostPolicyConfig } from '../security/host-policy';
 import { normalizeProductUrl, type NormalizedProductUrl } from '../url/normalize';
 import { toPublicSource, toResultItem } from './present';
+import { readIssueText } from './read-issue';
 import type { Logger } from '../server/logger';
 
 export interface VisionAnalyzer {
@@ -70,8 +71,8 @@ const ERROR_MESSAGES: Record<SearchErrorCode, string> = {
   blocked_host: 'No podemos analizar enlaces de ese dominio.',
   own_domain: 'Ese enlace ya es de Gemelu. Pega el enlace del producto de la tienda.',
   not_a_product: 'La página no parece la ficha de un producto. Abre el producto concreto y copia su enlace.',
-  store_blocked: 'La tienda no permite la lectura automática de esta página.',
-  robots_disallowed: 'La tienda no permite la lectura automática de esta página.',
+  store_blocked: 'La tienda no deja que programas automáticos lean esta página. No intentamos saltarnos ese bloqueo.',
+  robots_disallowed: 'La tienda pide en su robots.txt que los programas automáticos no lean esta página, y lo respetamos.',
   fetch_failed: 'No hemos podido abrir la página de la tienda.',
   timeout: 'La tienda ha tardado demasiado en responder.',
   too_large: 'La página de la tienda es demasiado grande para analizarla.',
@@ -275,7 +276,9 @@ export class SearchService {
       blocked_host: 'blocked_host',
     };
     const code = map[result.reason] ?? 'fetch_failed';
-    throw new SearchError(code, errorMessage(code));
+    if (code === 'not_a_product' || code === 'blocked_host' || code === 'unsupported_content') throw new SearchError(code, errorMessage(code));
+    const issue: ReadIssue = { reason: result.reason, ...(result.detail ? { detail: result.detail } : {}), ...(result.blockKind ? { block: result.blockKind } : {}) };
+    throw new SearchError(code, `${readIssueText(n.store.name, issue)} El enlace no incluye el nombre del producto, así que no podemos buscar solo con él.`);
   }
 
   private async match(
@@ -382,7 +385,7 @@ export class SearchService {
     } else if (source.readMode === 'url-only') {
       notices.push({
         kind: 'url_only',
-        message: `${source.store.name} no permite leer su página automáticamente. Hemos buscado a partir del nombre que aparece en el enlace, sin foto ni precio originales.`,
+        message: `${readIssueText(source.store.name, source.readIssue)} Hemos buscado por el nombre que aparece en el enlace («${source.title}»), sin foto ni precio del original.`,
       });
     } else if (!source.price && source.readMode === 'page') {
       notices.push({ kind: 'no_source_price', message: 'No hemos podido leer el precio original, así que no calculamos el ahorro.' });

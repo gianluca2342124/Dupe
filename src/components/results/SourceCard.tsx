@@ -28,7 +28,7 @@ export default function SourceCard({ source }: Props) {
             />
           ) : (
             <div className="flex size-full items-center justify-center p-3 text-center text-xs text-ink-3">
-              {source.readMode === 'url-only' ? 'Sin foto: la tienda no permite leerla' : 'Sin foto'}
+              {source.readMode === 'url-only' ? 'Sin foto: no hemos podido leer la ficha' : 'Sin foto'}
             </div>
           )}
         </div>

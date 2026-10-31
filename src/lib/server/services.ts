@@ -67,8 +67,8 @@ export function getServices(env: Record<string, unknown>): Services {
   const userAgent = botUserAgent(config.siteUrl);
   const safeFetch = createSafeFetcher({ fetch: fetchImpl, resolver: config.dnsGuard ? new DohResolver(fetchImpl) : null, policy: hostPolicy });
   const fixtures = config.fetchMode === 'fixtures';
-  const fetcher = fixtures ? new FixturePageFetcher(FIXTURE_PAGES) : new LivePageFetcher(safeFetch, userAgent, { timeoutMs: 9000, maxBytes: 4_500_000 });
   const robots = !fixtures && config.robotsPolicy === 'respect' ? new RobotsChecker(safeFetch, userAgent, BOT_USER_AGENT_TOKEN) : null;
+  const fetcher = fixtures ? new FixturePageFetcher(FIXTURE_PAGES) : new LivePageFetcher(safeFetch, userAgent, { timeoutMs: 9000, maxBytes: 4_500_000 }, robots);
   const headless =
     config.browserRendering.accountId && config.browserRendering.token && config.headlessHosts.length
       ? new CloudflareBrowserRendering(config.browserRendering.accountId, config.browserRendering.token, userAgent, fetchImpl)
